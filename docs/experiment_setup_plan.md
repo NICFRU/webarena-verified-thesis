@@ -83,6 +83,10 @@ Noch ohne H/k:
 
 Die erwarteten Dateien sind in `docs/webarena_verified_cli_and_outputs.md` beschrieben. Wichtig sind vor der Evaluation vor allem `agent_response.json` und `network.har`.
 
+Der erste konkrete Minimalrunner ist `scripts/run_gitlab_task44_navigate_runner.py`; das begleitende Notebook ist `notebooks/03_minimal_runner_task44.ipynb`.
+
+Status: Der Runner wurde gegen Demo-GitLab Task 44 getestet und erreichte `score: 1.0`. Damit ist der Human-Agent fuer diese einfache Navigationsaufgabe durch eigenen Code ersetzt.
+
 ## Phase 4: H/k-Prototyp
 
 Ziel: Nur die Prozesslogik ergaenzen, nicht den Benchmark veraendern.

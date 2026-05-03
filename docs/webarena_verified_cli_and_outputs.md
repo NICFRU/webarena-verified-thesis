@@ -161,3 +161,33 @@ Du kannst jetzt mit BrowserGym/AgentLab anfangen, aber erst als naechsten Schrit
 4. Du siehst danach die erzeugten Dateien im Output-Ordner.
 5. Erst dann baust du einen eigenen Runner oder AgentLab/BrowserGym-Runner, der dieselbe Dateistruktur erzeugt.
 
+## Aktueller Minimalrunner-Stand
+
+Der erste eigene Runner liegt unter `scripts/run_gitlab_task44_navigate_runner.py`. Er loest nur Task 44:
+
+- Task-Input aus `output/tasks.demo.json` laden.
+- Demo-GitLab unter `http://localhost:8012` pruefen.
+- Bei Bedarf mit den Credentials aus `examples/configs/config.demo.json` einloggen.
+- Nach `/dashboard/todos` navigieren.
+- `network.har` schreiben.
+- `agent_response.json` mit `NAVIGATE`/`SUCCESS` schreiben.
+- `webarena-verified eval-tasks` ausfuehren.
+
+Der erfolgreiche Testlauf schrieb:
+
+```text
+external/webarena-verified/output/auto-run/44/
+  agent_response.json
+  network.har
+  eval_result.json
+```
+
+Die Evaluation ergab:
+
+```json
+{
+  "task_id": 44,
+  "status": "success",
+  "score": 1.0
+}
+```

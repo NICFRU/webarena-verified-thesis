@@ -58,6 +58,14 @@ uv run invoke -r examples gitlab-stop
 
 Im aktuell geklonten Repo heisst der Invoke-Task `gitlab-start`; falls eine Doku-Version `demo-gitlab-start` zeigt, ist das hier der entsprechende Task.
 
+Der erste eigene Minimalrunner fuer Task 44 liegt hier:
+
+```bash
+python scripts/run_gitlab_task44_navigate_runner.py
+```
+
+Notebook dazu: `notebooks/03_minimal_runner_task44.ipynb`.
+
 ## Checks
 
 ```bash
