@@ -74,6 +74,12 @@ python scripts/run_browsergym_gitlab_task44_runner.py
 
 Notebook dazu: `notebooks/04_browsergym_gitlab_task44.ipynb`.
 
+Ein Notebook fuer eine zweite WebArena-Verified-Site als BrowserGym-Probe liegt hier:
+
+```bash
+code notebooks/05_other_site_browsergym_probe.ipynb
+```
+
 ## Checks
 
 ```bash

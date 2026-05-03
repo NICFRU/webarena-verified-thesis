@@ -97,6 +97,18 @@ Dieser Runner nutzt `browsergym/openended`, fuehrt die Navigation als BrowserGym
 
 Status: Der BrowserGym-Runner wurde gegen Demo-GitLab Task 44 getestet und erreichte `score: 1.0`.
 
+## Phase 3c: Zweite Site als Probe
+
+Ziel: Nicht sofort eine weitere Benchmark-Aufgabe loesen, sondern eine zweite WebArena-Verified-Site kontrolliert starten und mit BrowserGym oeffnen.
+
+Der Site-Probe-Runner ist `scripts/run_browsergym_site_probe.py`; das begleitende Notebook ist `notebooks/05_other_site_browsergym_probe.ipynb`.
+
+Empfohlene Reihenfolge:
+
+- `shopping` oder `shopping_admin` als naechste Site verwenden.
+- `wikipedia` und `map` erst spaeter testen, weil sie Daten-Setup benoetigen.
+- Erst wenn BrowserGym die Site sauber oeffnet, einen kleinen scripted Agent fuer einen konkreten Task bauen.
+
 ## Phase 4: H/k-Prototyp
 
 Ziel: Nur die Prozesslogik ergaenzen, nicht den Benchmark veraendern.
