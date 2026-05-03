@@ -191,3 +191,22 @@ Die Evaluation ergab:
   "score": 1.0
 }
 ```
+
+Der naechste Runner nutzt BrowserGym statt direktem Playwright: `scripts/run_browsergym_gitlab_task44_runner.py`. Auch dieser Runner erzeugte fuer Task 44 die erwarteten Artefakte unter:
+
+```text
+external/webarena-verified/output/browsergym-run/44/
+  agent_response.json
+  network.har
+  eval_result.json
+```
+
+Die Evaluation ergab ebenfalls:
+
+```json
+{
+  "task_id": 44,
+  "status": "success",
+  "score": 1.0
+}
+```

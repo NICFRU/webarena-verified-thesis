@@ -66,6 +66,14 @@ python scripts/run_gitlab_task44_navigate_runner.py
 
 Notebook dazu: `notebooks/03_minimal_runner_task44.ipynb`.
 
+Der erste BrowserGym-basierte Runner fuer denselben Task liegt hier:
+
+```bash
+python scripts/run_browsergym_gitlab_task44_runner.py
+```
+
+Notebook dazu: `notebooks/04_browsergym_gitlab_task44.ipynb`.
+
 ## Checks
 
 ```bash

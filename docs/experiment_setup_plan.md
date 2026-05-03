@@ -87,6 +87,16 @@ Der erste konkrete Minimalrunner ist `scripts/run_gitlab_task44_navigate_runner.
 
 Status: Der Runner wurde gegen Demo-GitLab Task 44 getestet und erreichte `score: 1.0`. Damit ist der Human-Agent fuer diese einfache Navigationsaufgabe durch eigenen Code ersetzt.
 
+## Phase 3b: BrowserGym-Anschluss
+
+Ziel: Den direkten Playwright-Zugriff durch BrowserGym ersetzen, aber weiterhin WebArena-Verified-Artefakte erzeugen.
+
+Der erste BrowserGym-Runner ist `scripts/run_browsergym_gitlab_task44_runner.py`; das begleitende Notebook ist `notebooks/04_browsergym_gitlab_task44.ipynb`.
+
+Dieser Runner nutzt `browsergym/openended`, fuehrt die Navigation als BrowserGym-Action aus und evaluiert anschliessend wieder mit WebArena-Verified.
+
+Status: Der BrowserGym-Runner wurde gegen Demo-GitLab Task 44 getestet und erreichte `score: 1.0`.
+
 ## Phase 4: H/k-Prototyp
 
 Ziel: Nur die Prozesslogik ergaenzen, nicht den Benchmark veraendern.
