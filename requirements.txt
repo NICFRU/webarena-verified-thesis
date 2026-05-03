@@ -1,0 +1,15 @@
+# Minimal toolchain for the WebArena-Verified / BrowserGym / AgentLab smoke setup.
+# Note: browsergym-webarena-verified currently requires a modern Python version
+# in the BrowserGym packaging line. Prefer Python 3.12 for installation.
+agentlab
+browsergym
+browsergym-webarena-verified
+python-dotenv
+pandas
+ipykernel
+
+# WebArena-Verified is actively developed. The package is available on PyPI,
+# while the BrowserGym integration docs may still recommend installing from
+# source when tracking the latest changes:
+# git+https://github.com/ServiceNow/webarena-verified
+webarena-verified
