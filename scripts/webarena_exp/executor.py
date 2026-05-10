@@ -57,6 +57,99 @@ def login_gitlab_if_needed(page, credentials: tuple[str, str] | None) -> bool:
     return True
 
 
+def login_shopping_admin_if_needed(page, credentials: tuple[str, str] | None) -> bool:
+    """Log into the Magento admin interface if the login form is visible."""
+
+    if credentials is None:
+        return False
+
+    username_input = page.locator("#username")
+    password_input = page.locator("#login")
+    if username_input.count() == 0 or password_input.count() == 0:
+        return False
+
+    username, password = credentials
+    username_input.fill(username)
+    password_input.fill(password)
+    for selector in ["button.action-login", "button[type='submit']", ".actions .action-primary"]:
+        locator = page.locator(selector).first
+        if locator.count() > 0:
+            locator.click(timeout=5000)
+            page.wait_for_load_state("networkidle")
+            return True
+
+    password_input.press("Enter")
+    page.wait_for_load_state("networkidle")
+    return True
+
+
+def login_site_if_needed(page, site_name: str, credentials: tuple[str, str] | None) -> bool:
+    """Dispatch site-specific login behavior for prototype executors."""
+
+    if site_name == "gitlab":
+        return login_gitlab_if_needed(page, credentials)
+    if site_name == "shopping_admin":
+        return login_shopping_admin_if_needed(page, credentials)
+    return False
+
+
+class GenericNavigateExecutor:
+    """Small executor for prototype sites with a known target URL.
+
+    This class is intentionally conservative: it can log in when a supported
+    login form is visible, then navigate to the target URL or assert that the
+    current page is already relevant. It is useful for making all current local
+    examples executable through the same H/k logging pipeline.
+    """
+
+    def __init__(self, site_name: str, target_url: str | None, credentials: tuple[str, str] | None = None):
+        self.site_name = site_name
+        self.target_url = target_url
+        self.credentials = credentials
+
+    def execute_subgoal(self, env, page, subgoal: Subgoal, step_index: int) -> list[ExecutorStep]:
+        """Execute the next generic browser action for a subgoal."""
+
+        url_before = page.url
+        error = None
+        status = "success"
+        subgoal_text = f"{subgoal.objective} {subgoal.expected_outcome}".lower()
+
+        try:
+            if any(keyword in subgoal_text for keyword in ["login", "auth", "authenticated", "sign in", "admin"]):
+                did_login = login_site_if_needed(page, self.site_name, self.credentials)
+                if did_login:
+                    action_label = "login_if_needed"
+                elif self.target_url is not None and page.url.rstrip("/") != self.target_url.rstrip("/"):
+                    action_label = f'goto("{self.target_url}")'
+                    env.step(action_label)
+                else:
+                    action_label = "login_skipped"
+            elif self.target_url is not None and page.url.rstrip("/") != self.target_url.rstrip("/"):
+                action_label = f'goto("{self.target_url}")'
+                env.step(action_label)
+            else:
+                action_label = "assert_current_page_relevant"
+            page.wait_for_load_state("networkidle", timeout=10000)
+        except Exception as exc:
+            action_label = f"execute_subgoal({subgoal.id})"
+            error = str(exc)
+            status = "error"
+
+        return [
+            ExecutorStep(
+                step_index=step_index,
+                subgoal_id=subgoal.id,
+                action=action_label,
+                url_before=url_before,
+                url_after=page.url,
+                status=status,
+                page_title=page.title(),
+                error=error,
+            )
+        ]
+
+
 class Task44ScriptedExecutor:
     """Task-44 executor that grounds planner subgoals into browser actions."""
 

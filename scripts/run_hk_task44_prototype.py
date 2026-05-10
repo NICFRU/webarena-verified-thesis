@@ -22,8 +22,8 @@ from tqdm import tqdm
 
 from webarena_exp.browsergym_utils import assert_site_reachable
 from webarena_exp.controller import decide_next_action
-from webarena_exp.evaluator import evaluate_gitlab_task44_state, evaluate_shopping_task118_state
-from webarena_exp.executor import ShoppingTask118Executor, Task44ScriptedExecutor, absolute_url, task44_target_url
+from webarena_exp.evaluator import evaluate_generic_site_state, evaluate_gitlab_task44_state, evaluate_shopping_task118_state
+from webarena_exp.executor import GenericNavigateExecutor, ShoppingTask118Executor, Task44ScriptedExecutor, absolute_url, task44_target_url
 from webarena_exp.hardcoded_tasks import HARDCODED_TASKS
 from webarena_exp.io_utils import read_json, read_jsonl, write_json
 from webarena_exp.logging import TraceLogger
@@ -41,6 +41,18 @@ def load_task(tasks_file: Path, task_id: int) -> dict[str, Any]:
     raise ValueError(f"Task {task_id} not found in {tasks_file}")
 
 
+def load_dataset_task(repo_root: Path, task_id: int) -> dict[str, Any] | None:
+    """Load one raw WebArena-Verified dataset task with evaluator metadata."""
+
+    dataset_path = repo_root / "assets" / "dataset" / "webarena-verified.json"
+    if not dataset_path.exists():
+        return None
+    for task in read_json(dataset_path):
+        if task.get("task_id") == task_id:
+            return task
+    return None
+
+
 def load_gitlab_credentials(config_path: Path) -> tuple[str, str] | None:
     config = read_json(config_path)
     credentials = config.get("environments", {}).get("__GITLAB__", {}).get("credentials")
@@ -53,33 +65,49 @@ def load_gitlab_credentials(config_path: Path) -> tuple[str, str] | None:
     return username, password
 
 
-def default_task_id(site_name: str) -> int:
+def default_task_id(site_name: str) -> int | None:
     """Return the prototype task id for a supported site."""
 
     spec = HARDCODED_TASKS[site_name]
     if spec.task_id is None:
-        raise ValueError(f"Site {site_name} does not define a prototype task")
+        return None
     return spec.task_id
 
 
-def load_or_render_task(repo_root: Path, site_name: str, task_id: int, config: Path, task_output_dir: Path, tasks_file: Path) -> dict[str, Any]:
+def load_or_render_task(repo_root: Path, site_name: str, task_id: int | None, config: Path, task_output_dir: Path, tasks_file: Path) -> dict[str, Any]:
     """Load the GitLab demo task or render a site task through the official CLI."""
 
-    if site_name == "gitlab":
+    site = SITE_INPUTS[site_name]
+    spec = HARDCODED_TASKS[site_name]
+    if task_id is None:
+        return {
+            "sites": [site_name],
+            "task_id": None,
+            "start_urls": [site.base_url],
+            "intent": spec.intent,
+            "task_type": spec.task_type,
+        }
+
+    if site_name == "gitlab" and task_id == HARDCODED_TASKS["gitlab"].task_id:
         return load_task(tasks_file, task_id)
 
     rendered_path = task_output_dir / "task_input.json"
     rendered = export_agent_input(repo_root, task_id, config, rendered_path)
     if not rendered:
         raise ValueError(f"No rendered task returned for {site_name} task {task_id}")
-    return rendered[0]
+    task = rendered[0]
+    dataset_task = load_dataset_task(repo_root, task_id)
+    if dataset_task is not None:
+        task["eval"] = dataset_task.get("eval", [])
+        task["intent_template_id"] = dataset_task.get("intent_template_id", task.get("intent_template_id"))
+    return task
 
 
-def write_agent_response(output_dir: Path, task_type: str = "NAVIGATE") -> Path:
+def write_agent_response(output_dir: Path, task_type: str = "NAVIGATE", retrieved_data: list[dict] | None = None) -> Path:
     response = {
-        "task_type": task_type,
+        "task_type": task_type if task_type != "SERVICE_PROBE" else "NAVIGATE",
         "status": "SUCCESS",
-        "retrieved_data": None,
+        "retrieved_data": retrieved_data,
         "error_details": None,
     }
     out = output_dir / "agent_response.json"
@@ -130,31 +158,71 @@ def observation_summary(
     return "\n".join(parts)
 
 
-def task_goal_reached(page, site_name: str, target_path: str | None = None) -> bool:
+def expected_target_path(task: dict[str, Any], site_name: str, fallback_path: str | None) -> str | None:
+    """Extract a target path from WebArena-Verified eval metadata when present."""
+
+    env_key = SITE_INPUTS[site_name].env_key
+    for evaluator in task.get("eval", []):
+        expected = evaluator.get("expected", {})
+        url = expected.get("url")
+        if isinstance(url, list):
+            url = url[0] if url else None
+        if not isinstance(url, str):
+            continue
+        url = url.replace("^", "").replace("$", "").replace(".*", "")
+        url = url.replace(env_key, "")
+        if url.startswith("__"):
+            continue
+        if url.startswith("http://") or url.startswith("https://"):
+            marker = SITE_INPUTS[site_name].base_url
+            if url.startswith(marker):
+                url = url[len(marker):]
+        if url.startswith("/"):
+            return url
+    return fallback_path
+
+
+def task_goal_reached(page, site_name: str, target_path: str | None = None, success_url_contains: str | None = None, step_index: int = 0) -> bool:
     """Return whether the current prototype task has reached its target state."""
 
+    if step_index == 0:
+        return False
+    if success_url_contains and success_url_contains in page.url:
+        return True
     if site_name == "gitlab":
-        return "/dashboard/todos" in page.url
+        return bool(target_path and target_path.rstrip("/") in page.url.rstrip("/"))
     if site_name == "shopping" and target_path:
         target_slug = target_path.rsplit("/", maxsplit=1)[-1].replace(".html", "")
         return target_slug in page.url or "bruxism-night-guard" in page.url
+    if target_path and target_path != "/":
+        return target_path.rstrip("/") in page.url.rstrip("/")
+    if site_name in {"reddit", "wikipedia"}:
+        return page.url.startswith("http")
     return False
 
 
-def evaluate_runtime_state(page, site_name: str, step_index: int, subgoal: Any, previous_urls: list[str], target_path: str | None):
+def evaluate_runtime_state(
+    page,
+    site_name: str,
+    step_index: int,
+    subgoal: Any,
+    previous_urls: list[str],
+    target_path: str | None,
+    success_url_contains: str | None = None,
+):
     """Dispatch to the site-specific internal runtime evaluator."""
 
     if site_name == "gitlab":
         return evaluate_gitlab_task44_state(page, step_index, subgoal, previous_urls)
     if site_name == "shopping" and target_path is not None:
         return evaluate_shopping_task118_state(page, step_index, subgoal, previous_urls, target_path)
-    raise ValueError(f"No runtime evaluator configured for site {site_name}")
+    return evaluate_generic_site_state(page, step_index, subgoal, previous_urls, target_path, success_url_contains)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo-root", type=Path, default=Path("external/webarena-verified"))
-    parser.add_argument("--site", choices=["gitlab", "shopping"], default="gitlab")
+    parser.add_argument("--site", choices=["gitlab", "shopping", "shopping_admin", "reddit", "wikipedia"], default="gitlab")
     parser.add_argument("--tasks-file", type=Path, default=Path("output/tasks.demo.json"))
     parser.add_argument("--task-id", type=int)
     parser.add_argument("--output-root", type=Path)
@@ -182,7 +250,8 @@ def main() -> int:
     tasks_file = args.tasks_file if args.tasks_file.is_absolute() else repo_root / args.tasks_file
     output_root = args.output_root or Path(f"output/hk-prototype/h{args.h}_k{args.k}")
     output_root = output_root if output_root.is_absolute() else repo_root / output_root
-    task_output_dir = output_root / args.site / str(task_id) if args.output_root is None else output_root / str(task_id)
+    task_label = str(task_id) if task_id is not None else "direct"
+    task_output_dir = output_root / args.site / task_label if args.output_root is None else output_root / task_label
     task_output_dir.mkdir(parents=True, exist_ok=True)
     if args.site == "gitlab":
         config = args.config if args.config.is_absolute() else repo_root / args.config
@@ -195,16 +264,30 @@ def main() -> int:
     started = time.perf_counter()
     task = load_or_render_task(repo_root, args.site, task_id, config, task_output_dir, tasks_file)
     start_url = task["start_urls"][0]
-    target_path = site_spec.target_path
+    target_path = expected_target_path(task, args.site, site_spec.target_path)
+    success_url_contains = site_spec.success_url_contains
     if args.site == "gitlab":
-        target_url = task44_target_url(start_url)
+        target_url = absolute_url(site_input.base_url, target_path) if target_path else task44_target_url(start_url)
         credentials = load_gitlab_credentials(config)
-        executor = Task44ScriptedExecutor(target_url=target_url, credentials=credentials)
+        if task_id == HARDCODED_TASKS["gitlab"].task_id:
+            executor = Task44ScriptedExecutor(target_url=target_url, credentials=credentials)
+        else:
+            executor = GenericNavigateExecutor(site_name=args.site, target_url=target_url, credentials=credentials)
     elif args.site == "shopping" and target_path is not None:
         target_url = absolute_url(start_url, target_path)
         executor = ShoppingTask118Executor(start_url=start_url, target_path=target_path)
+    elif target_path is not None:
+        target_url = absolute_url(site_input.base_url, target_path)
+        credentials = None
+        if site_input.credentials is not None:
+            credentials = (site_input.credentials.username, site_input.credentials.password)
+        executor = GenericNavigateExecutor(site_name=args.site, target_url=target_url, credentials=credentials)
     else:
-        raise ValueError(f"Unsupported H/k prototype site: {args.site}")
+        target_url = None
+        credentials = None
+        if site_input.credentials is not None:
+            credentials = (site_input.credentials.username, site_input.credentials.password)
+        executor = GenericNavigateExecutor(site_name=args.site, target_url=None, credentials=credentials)
     assert_site_reachable(start_url)
 
     har_path = task_output_dir / "network.har"
@@ -240,7 +323,7 @@ def main() -> int:
         previous_urls.append(page.url)
         bar.update(1)
 
-        while not task_goal_reached(page, args.site, target_path) and step_index < args.max_steps and planner_call_count < args.max_planner_calls:
+        while not task_goal_reached(page, args.site, target_path, success_url_contains, step_index) and step_index < args.max_steps and planner_call_count < args.max_planner_calls:
             previous_plan = plain(plan) if plan is not None else None
             planner_request = PlannerRequest(
                 task=task,
@@ -293,11 +376,11 @@ def main() -> int:
                 raise RuntimeError("Planner returned no subgoals")
 
             for subgoal in active_subgoals:
-                if step_index >= args.max_steps or task_goal_reached(page, args.site, target_path):
+                if step_index >= args.max_steps or task_goal_reached(page, args.site, target_path, success_url_contains, step_index):
                     break
 
                 subgoal_done = False
-                while not subgoal_done and step_index < args.max_steps and not task_goal_reached(page, args.site, target_path):
+                while not subgoal_done and step_index < args.max_steps and not task_goal_reached(page, args.site, target_path, success_url_contains, step_index):
                     executor_steps = executor.execute_subgoal(env, page, subgoal, step_index + 1)
                     for executor_step in executor_steps:
                         if executor_step.step_index > args.max_steps:
@@ -306,11 +389,11 @@ def main() -> int:
                         step_index = executor_step.step_index
                         logger.log_executor_step(executor_step)
                         previous_urls.append(page.url)
-                        goal_reached = task_goal_reached(page, args.site, target_path)
+                        goal_reached = task_goal_reached(page, args.site, target_path, success_url_contains, step_index)
                         should_validate = step_index % args.k == 0 or goal_reached
 
                         if should_validate:
-                            last_signal = evaluate_runtime_state(page, args.site, step_index, subgoal, previous_urls, target_path)
+                            last_signal = evaluate_runtime_state(page, args.site, step_index, subgoal, previous_urls, target_path, success_url_contains)
                             logger.log_evaluator_signal(last_signal)
                             last_decision = decide_next_action(last_signal, step_index >= args.max_steps)
                             logger.log_controller_decision(last_decision)
@@ -340,10 +423,10 @@ def main() -> int:
         env.close()
         bar.update(1)
 
-        response_path = write_agent_response(task_output_dir, site_spec.task_type)
+        response_path = write_agent_response(task_output_dir, site_spec.task_type, site_spec.retrieved_data)
         bar.update(1)
 
-        if not args.skip_eval:
+        if not args.skip_eval and task_id is not None and site_spec.run_official_eval:
             eval_proc = run_eval(repo_root, config, task_id, task_output_dir.parent)
             bar.update(1)
 

@@ -25,7 +25,7 @@ def run_one(
     repo_root: Path,
     output_root: Path,
     site: str,
-    task_id: int,
+    task_id: int | None,
     h: int,
     k: int,
     model: str,
@@ -42,8 +42,6 @@ def run_one(
         str(repo_root),
         "--site",
         site,
-        "--task-id",
-        str(task_id),
         "--output-root",
         str(run_root),
         "--planner-mode",
@@ -55,13 +53,15 @@ def run_one(
         "--k",
         str(k),
     ]
+    if task_id is not None:
+        command.extend(["--task-id", str(task_id)])
     if headed:
         command.append("--headed")
     if skip_eval:
         command.append("--skip-eval")
 
     proc = subprocess.run(command, text=True, capture_output=True, check=False)
-    task_dir = run_root / str(task_id)
+    task_dir = run_root / (str(task_id) if task_id is not None else "direct")
     summary_path = task_dir / "run_summary.json"
     trace_path = task_dir / "run_trace.json"
     summary = read_json(summary_path) if summary_path.exists() else {}
@@ -135,7 +135,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo-root", type=Path, default=Path("external/webarena-verified"))
     parser.add_argument("--output-root", type=Path, default=Path("output/hk-sweep"))
-    parser.add_argument("--site", choices=["gitlab", "shopping"], default="gitlab")
+    parser.add_argument("--site", choices=["gitlab", "shopping", "shopping_admin", "reddit", "wikipedia"], default="gitlab")
     parser.add_argument("--task-id", type=int)
     parser.add_argument("--hs", type=int, nargs="+", default=[0, 1, 2])
     parser.add_argument("--ks", type=int, nargs="+", default=[1, 2])
@@ -146,8 +146,6 @@ def main() -> int:
 
     repo_root = args.repo_root.resolve()
     task_id = args.task_id if args.task_id is not None else HARDCODED_TASKS[args.site].task_id
-    if task_id is None:
-        raise ValueError(f"No default task id configured for site {args.site}")
     output_root = args.output_root if args.output_root.is_absolute() else repo_root / args.output_root
     output_root.mkdir(parents=True, exist_ok=True)
 
