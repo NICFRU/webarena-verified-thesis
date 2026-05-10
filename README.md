@@ -2,7 +2,11 @@
 
 Dieses Projekt ist ein kleiner, nachvollziehbarer Minimaldurchstich fuer eine Masterarbeit zu LLM-basierten Webagenten. Der finale Zielbenchmark ist WebArena-Verified; BrowserGym dient als Environment-Schicht und AgentLab als spaeterer Experiment Runner.
 
-Noch nicht enthalten sind Planner, Evaluator, Controller, Replanning-Logik oder das vollstaendige `H`/`k`-Faktorexperiment. Diese Struktur prueft zuerst, ob Toolchain, Config und Result-Pfade lokal tragfaehig sind.
+Aktuell enthalten sind Service-Probes, hardcoded offizielle Beispielaufgaben,
+ein lokaler Ollama-Planner, erste Planner/Executor/Evaluator/Controller/Logging-
+Schnittstellen und ein kleiner H/k-Orchestrator fuer GitLab Task 44 sowie
+Shopping Task 118. Map ist lokal ausgeschlossen, weil die Daten/Volumes zu
+gross fuer den aktuellen Speicherrahmen sind.
 
 ## Setup Kurzfassung
 
@@ -34,14 +38,6 @@ docker run --rm -v "$PWD:/workspace" ghcr.io/servicenow/webarena-verified:latest
 
 Lokal Python/AgentLab bleibt fuer BrowserGym, AgentLab-Experimente, den Fallback-Smoke-Test und spaeter die eigene `H`/`k`-Agentenlogik noetig.
 
-Der reproduzierbare Docker-Smoke-Test liegt als Script und Notebook vor:
-
-```bash
-python scripts/run_docker_webarena_verified_smoke.py
-```
-
-Notebook: `notebooks/01_docker_webarena_verified_smoke.ipynb`
-
 Der offizielle Demo-GitLab-Workflow mit `uv` liegt als zweites Notebook vor:
 
 ```bash
@@ -58,52 +54,213 @@ uv run invoke -r examples gitlab-stop
 
 Im aktuell geklonten Repo heisst der Invoke-Task `gitlab-start`; falls eine Doku-Version `demo-gitlab-start` zeigt, ist das hier der entsprechende Task.
 
-Der erste eigene Minimalrunner fuer Task 44 liegt hier:
+Die historischen Setup- und Smoke-Test-Skripte liegen im Archiv:
 
 ```bash
-python scripts/run_gitlab_task44_navigate_runner.py
+scripts/archive/legacy_runners/
 ```
 
-Notebook dazu: `notebooks/03_minimal_runner_task44.ipynb`.
+## Aktuelle Einstiegspunkte
 
-Der erste BrowserGym-basierte Runner fuer denselben Task liegt hier:
+Alle Befehle unten vom Projektroot aus ausfuehren:
 
 ```bash
-python scripts/run_browsergym_gitlab_task44_runner.py
+cd /Users/niclascramer/Privat/Uni/Uni-Reutlingen/Masterarbeit/05_Code
 ```
 
-Notebook dazu: `notebooks/04_browsergym_gitlab_task44.ipynb`.
-
-Ein Notebook fuer eine zweite WebArena-Verified-Site als BrowserGym-Probe liegt hier:
+Fehlende lokale Services starten, Map ausgeschlossen:
 
 ```bash
-code notebooks/05_other_site_browsergym_probe.ipynb
+uv run python scripts/start_enabled_services.py
 ```
 
-## Checks
+Nur eine Auswahl starten:
 
 ```bash
-python scripts/check_setup.py
-python scripts/run_agentlab_smoke.py
-python scripts/run_webarena_verified_smoke.py
-python scripts/run_docker_webarena_verified_smoke.py
+uv run python scripts/start_enabled_services.py --sites gitlab shopping shopping_admin reddit
 ```
 
-Die WebArena-Verified-Ausfuehrung braucht echte WebArena-Instanzen und passende URLs in `.env`. Kopiere dafuer:
+Wikipedia wird standardmaessig ausgelassen und kann bewusst dazugenommen werden:
 
 ```bash
-cp configs/minimal_demo.env.example .env
+uv run python scripts/start_enabled_services.py --include-wikipedia
 ```
 
-und ersetze die `todo`-Werte.
+Alle eingeschlossenen lokalen Services ausser Map pruefen:
+
+```bash
+uv run python scripts/run_services_probe.py
+```
+
+Explizit alle aktuell genutzten Services pruefen:
+
+```bash
+uv run python scripts/run_services_probe.py --sites shopping shopping_admin reddit gitlab wikipedia
+```
+
+Der Probe-Runner prueft vorab den Docker-Status und schreibt:
+
+```text
+external/webarena-verified/output/service-probe/service_status.json
+external/webarena-verified/output/service-probe/probe_log.jsonl
+external/webarena-verified/output/service-probe/summary.json
+```
+
+Hardcoded Beispielaufgaben pro Site ausfuehren und offiziell evaluieren:
+
+```bash
+uv run python scripts/run_hardcoded_tasks.py --sites shopping shopping_admin reddit gitlab
+```
+
+Einzelne offizielle hardcoded Beispiele:
+
+```bash
+uv run python scripts/run_hardcoded_tasks.py --sites gitlab
+uv run python scripts/run_hardcoded_tasks.py --sites shopping
+uv run python scripts/run_hardcoded_tasks.py --sites shopping_admin
+uv run python scripts/run_hardcoded_tasks.py --sites reddit
+```
+
+Dasselbe mit sichtbarem Browserfenster (`headed`):
+
+```bash
+uv run python scripts/run_hardcoded_tasks.py --sites shopping shopping_admin reddit gitlab --headed
+```
+
+Nur einen einzelnen Task sichtbar ausfuehren:
+
+```bash
+uv run python scripts/run_hardcoded_tasks.py --sites gitlab --headed
+uv run python scripts/run_hardcoded_tasks.py --sites shopping --headed
+uv run python scripts/run_hardcoded_tasks.py --sites shopping_admin --headed
+uv run python scripts/run_hardcoded_tasks.py --sites reddit --headed
+```
+
+Das schreibt pro Site HAR, Trace, Metadata und `agent_response.json` nach:
+
+```text
+external/webarena-verified/output/hardcoded-tasks/
+```
+
+Fuer alle hardcoded Tasks mit echter Task-ID wird die offizielle WebArena-Verified-Evaluation ausgefuehrt. Aktuell loesen die hardcoded Tasks `shopping` 118, `shopping_admin` 157, `reddit` 27 und `gitlab` 44 jeweils mit `official_score=1.0`. `wikipedia` ist nur als Service-Probe enthalten, weil ohne Map keine passende `wikipedia`-only Official Task im aktuellen lokalen Scope verwendet wird.
+
+Die wichtigsten Ergebnisdateien nach dem Hardcoded-Lauf:
+
+```text
+external/webarena-verified/output/hardcoded-tasks/summary.json
+external/webarena-verified/output/hardcoded-tasks/hardcoded_log.jsonl
+external/webarena-verified/output/hardcoded-tasks/<site>/<task_id>/network.har
+external/webarena-verified/output/hardcoded-tasks/<site>/<task_id>/hardcoded_trace.jsonl
+external/webarena-verified/output/hardcoded-tasks/<site>/<task_id>/agent_response.json
+external/webarena-verified/output/hardcoded-tasks/<site>/<task_id>/eval_result.json
+```
+
+Planner-Preview ohne Browser-Ausfuehrung erzeugen:
+
+```bash
+uv run python scripts/preview_planner.py --planner-mode ollama --model gemma4:26b --sites shopping shopping_admin reddit gitlab wikipedia --h 0
+```
+
+Planner-Preview pro Site:
+
+```bash
+uv run python scripts/preview_planner.py --planner-mode ollama --model gemma4:26b --sites gitlab --h 0
+uv run python scripts/preview_planner.py --planner-mode ollama --model gemma4:26b --sites shopping --h 0
+uv run python scripts/preview_planner.py --planner-mode ollama --model gemma4:26b --sites shopping_admin --h 0
+uv run python scripts/preview_planner.py --planner-mode ollama --model gemma4:26b --sites reddit --h 0
+uv run python scripts/preview_planner.py --planner-mode ollama --model gemma4:26b --sites wikipedia --h 0
+```
+
+Planner-Preview mit begrenztem Planungshorizont:
+
+```bash
+uv run python scripts/preview_planner.py --planner-mode ollama --model gemma4:26b --sites gitlab --h 2
+```
+
+Die Planner-Artefakte liegen unter:
+
+```text
+external/webarena-verified/output/planner-preview/
+```
+
+Notebook-Kontrollpult fuer Service-Probes, hardcoded Tasks und Output-Tabellen:
+
+```bash
+code notebooks/07_services_and_hardcoded_tasks.ipynb
+```
+
+GitLab Task 44 als H/k-Architekturprototyp ausfuehren:
+
+```bash
+uv run python scripts/run_hk_task44_prototype.py --site gitlab --planner-mode ollama --model gemma4:26b --h 0 --k 1
+```
+
+Shopping Task 118 als laengeres H/k-Beispiel mit mehreren Browser-Aktionen pro Subgoal ausfuehren:
+
+```bash
+uv run python scripts/run_hk_task44_prototype.py --site shopping --planner-mode ollama --model gemma4:26b --h 0 --k 1 --max-steps 5
+```
+
+Kleinen H/k-Sweep fuer GitLab Task 44 ausfuehren:
+
+```bash
+uv run python scripts/run_hk_sweep.py --site gitlab --hs 0 1 2 --ks 1 2 --model gemma4:26b
+```
+
+Kleinen H/k-Sweep fuer Shopping Task 118 ausfuehren:
+
+```bash
+uv run python scripts/run_hk_sweep.py --site shopping --hs 0 --ks 1 2 --model gemma4:26b
+```
+
+Fuer die gemeinsame Notebook-Auswertung werden die Sweeps getrennt gespeichert:
+
+```bash
+uv run python scripts/run_hk_sweep.py --site gitlab --output-root output/hk-sweep/gitlab --hs 0 1 2 --ks 1 2 --model gemma4:26b
+uv run python scripts/run_hk_sweep.py --site shopping --output-root output/hk-sweep/shopping --hs 0 --ks 1 2 --model gemma4:26b
+```
+
+Sweep-Ergebnisse:
+
+```text
+external/webarena-verified/output/hk-sweep/gitlab/summary.json
+external/webarena-verified/output/hk-sweep/gitlab/summary.csv
+external/webarena-verified/output/hk-sweep/shopping/summary.json
+external/webarena-verified/output/hk-sweep/shopping/summary.csv
+```
+
+Zentrales Notebook fuer Ausfuehrung und Auswertung:
+
+```bash
+code notebooks/06_hk_task44_prototype.ipynb
+```
+
+Erste H/k-Sweep-Auswertung:
+
+```bash
+code notebooks/08_hk_sweep_analysis.ipynb
+```
+
+Aktueller H/k-Prozess mit Mermaid-Grafik:
+
+```bash
+code docs/current_hk_process.md
+```
+
+Die aktuellen Dataclasses, Site-Inputs und Hilfsfunktionen liegen unter `scripts/webarena_exp/`. Code-Quellen und lokale Verantwortlichkeiten sind in `docs/code_sources.md` dokumentiert.
+
+## Aktuelle Abdeckung
+
+| Site | Aufgabe | Pfad | Offizielle Evaluation |
+|---|---:|---|---|
+| `gitlab` | 44 | hardcoded + H/k-Orchestrator + Planner-Preview | ja |
+| `shopping` | 118 | hardcoded + H/k-Orchestrator + Planner-Preview | ja |
+| `shopping_admin` | 157 | hardcoded + Planner-Preview | ja |
+| `reddit` | 27 | hardcoded Retrieve + Planner-Preview | ja |
+| `wikipedia` | direct probe | Service-Probe + Planner-Preview | nein, keine genutzte wikipedia-only Task im aktuellen lokalen Scope |
+| `map` | - | ausgeschlossen | nein |
 
 ## Resultate
-
-Minimal-Summaries werden unter `runs/minimal_summary.json` vorbereitet. AgentLab-Resultate sollen spaeter unter `agentlab-results/` liegen.
-
-```bash
-python scripts/inspect_results.py runs/minimal_summary.json
-```
 
 Die wichtigsten WebArena-Verified-Dateien (`tasks.json`, `agent_response.json`, `network.har`, `eval_result.json`) sind in `docs/webarena_verified_cli_and_outputs.md` erklaert.
 

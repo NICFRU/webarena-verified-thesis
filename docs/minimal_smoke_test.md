@@ -8,14 +8,14 @@ Der Minimaldurchstich prueft zuerst die lokale Toolchain und Projektstruktur. Er
 
 ```bash
 source .venv/bin/activate
-python scripts/check_setup.py
+python scripts/archive/legacy_runners/check_setup.py
 ```
 
 Optional, wenn Dependencies installiert sind:
 
 ```bash
-python scripts/run_agentlab_smoke.py
-python scripts/run_webarena_verified_smoke.py --config configs/webarena_verified_config.example.json --task-id 108
+python scripts/archive/legacy_runners/run_agentlab_smoke.py
+python scripts/archive/legacy_runners/run_webarena_verified_smoke.py --config configs/webarena_verified_config.example.json --task-id 108
 ```
 
 Docker-basierter WebArena-Verified-Check ohne lokale WebArena-Verified-Installation:
@@ -31,8 +31,8 @@ docker run --rm -v "$PWD:/workspace" ghcr.io/servicenow/webarena-verified:latest
 Resultate ansehen:
 
 ```bash
-python scripts/inspect_results.py runs/minimal_summary.json
-python scripts/inspect_results.py agentlab-results/minimal_smoke
+python scripts/archive/legacy_runners/inspect_results.py runs/minimal_summary.json
+python scripts/archive/legacy_runners/inspect_results.py agentlab-results/minimal_smoke
 ```
 
 ## Erwartete Outputs

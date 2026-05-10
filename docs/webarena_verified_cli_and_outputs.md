@@ -163,7 +163,8 @@ Du kannst jetzt mit BrowserGym/AgentLab anfangen, aber erst als naechsten Schrit
 
 ## Aktueller Minimalrunner-Stand
 
-Der erste eigene Runner liegt unter `scripts/run_gitlab_task44_navigate_runner.py`. Er loest nur Task 44:
+Der erste eigene historische Runner liegt jetzt im Archiv unter
+`scripts/archive/legacy_runners/run_gitlab_task44_navigate_runner.py`. Er loest nur Task 44:
 
 - Task-Input aus `output/tasks.demo.json` laden.
 - Demo-GitLab unter `http://localhost:8012` pruefen.
@@ -192,7 +193,8 @@ Die Evaluation ergab:
 }
 ```
 
-Der naechste Runner nutzt BrowserGym statt direktem Playwright: `scripts/run_browsergym_gitlab_task44_runner.py`. Auch dieser Runner erzeugte fuer Task 44 die erwarteten Artefakte unter:
+Der naechste historische Runner nutzt BrowserGym statt direktem Playwright:
+`scripts/archive/legacy_runners/run_browsergym_gitlab_task44_runner.py`. Auch dieser Runner erzeugte fuer Task 44 die erwarteten Artefakte unter:
 
 ```text
 external/webarena-verified/output/browsergym-run/44/

@@ -130,11 +130,12 @@ WA_SHOPPING_ADMIN=http://localhost:7780/admin
 WA_REDDIT=http://localhost:9999
 WA_GITLAB=http://localhost:8012
 WA_WIKIPEDIA=http://localhost:8888/wikipedia_en_all_maxi_2022-05/A/User:The_other_Kiwix_guy/Landing
-WA_MAP=http://localhost:3000
 WA_HOMEPAGE=http://localhost:4399
 ```
 
 Kopiere dafuer `configs/minimal_demo.env.example` nach `.env` und ersetze `todo` durch echte lokale oder erreichbare Instanzen.
+
+Hinweis: `map` wird in der ersten lokalen Experimentalversion nicht verwendet. Die Umgebung benoetigt sehr grosse Datenarchive und zusaetzlich entpackte Docker-Volumes; der Speicherbedarf ist fuer das aktuelle lokale Setup zu hoch.
 
 ## Beispiel-Config
 
@@ -169,14 +170,14 @@ webarena-verified eval-tasks --task-ids 108 --config configs/webarena_verified_c
 Fallback-Smoke-Test fuer die Toolchain:
 
 ```bash
-python scripts/run_agentlab_smoke.py
+python scripts/archive/legacy_runners/run_agentlab_smoke.py
 ```
 
 Resultate inspizieren:
 
 ```bash
-python scripts/inspect_results.py runs/minimal_summary.json
-python scripts/inspect_results.py agentlab-results/minimal_smoke
+python scripts/archive/legacy_runners/inspect_results.py runs/minimal_summary.json
+python scripts/archive/legacy_runners/inspect_results.py agentlab-results/minimal_smoke
 ```
 
 ## Offene Punkte
