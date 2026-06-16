@@ -6,7 +6,15 @@ volumes are too large for the local machine used in this thesis prototype.
 
 from __future__ import annotations
 
+import os
+
 from .types import Credentials, SiteInput
+
+
+def env_value(name: str, default: str) -> str:
+    """Return a non-empty environment override or the default value."""
+
+    return os.environ.get(name) or default
 
 
 SITE_INPUTS: dict[str, SiteInput] = {
@@ -33,8 +41,11 @@ SITE_INPUTS: dict[str, SiteInput] = {
     "gitlab": SiteInput(
         name="gitlab",
         env_key="__GITLAB__",
-        base_url="http://localhost:8012",
-        credentials=Credentials(username="root", password="demopass"),
+        base_url=env_value("WA_GITLAB", "http://localhost:8012"),
+        credentials=Credentials(
+            username=env_value("WA_GITLAB_USERNAME", "root"),
+            password=env_value("WA_GITLAB_PASSWORD", "demopass"),
+        ),
     ),
     "wikipedia": SiteInput(
         name="wikipedia",

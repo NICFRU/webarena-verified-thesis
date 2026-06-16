@@ -23,7 +23,7 @@ from tqdm import tqdm
 from webarena_exp.browsergym_utils import assert_site_reachable
 from webarena_exp.controller import decide_next_action
 from webarena_exp.evaluator import evaluate_generic_site_state, evaluate_gitlab_task44_state, evaluate_shopping_task118_state
-from webarena_exp.executor import GenericNavigateExecutor, ShoppingTask118Executor, Task44ScriptedExecutor, absolute_url, task44_target_url
+from webarena_exp.executor import LLMActionExecutor, GenericNavigateExecutor, ShoppingTask118Executor, Task44ScriptedExecutor, absolute_url, task44_target_url
 from webarena_exp.hardcoded_tasks import HARDCODED_TASKS
 from webarena_exp.io_utils import read_json, read_jsonl, write_json
 from webarena_exp.logging import TraceLogger
@@ -88,7 +88,7 @@ def load_or_render_task(repo_root: Path, site_name: str, task_id: int | None, co
             "task_type": spec.task_type,
         }
 
-    if site_name == "gitlab" and task_id == HARDCODED_TASKS["gitlab"].task_id:
+    if site_name == "gitlab" and task_id == HARDCODED_TASKS["gitlab"].task_id and site.base_url.endswith(":8012"):
         return load_task(tasks_file, task_id)
 
     rendered_path = task_output_dir / "task_input.json"
@@ -162,24 +162,41 @@ def expected_target_path(task: dict[str, Any], site_name: str, fallback_path: st
     """Extract a target path from WebArena-Verified eval metadata when present."""
 
     env_key = SITE_INPUTS[site_name].env_key
+    candidates: list[str] = []
     for evaluator in task.get("eval", []):
         expected = evaluator.get("expected", {})
-        url = expected.get("url")
-        if isinstance(url, list):
-            url = url[0] if url else None
-        if not isinstance(url, str):
-            continue
-        url = url.replace("^", "").replace("$", "").replace(".*", "")
-        url = url.replace(env_key, "")
-        if url.startswith("__"):
-            continue
-        if url.startswith("http://") or url.startswith("https://"):
-            marker = SITE_INPUTS[site_name].base_url
-            if url.startswith(marker):
-                url = url[len(marker):]
-        if url.startswith("/"):
-            return url
+        raw_urls: list[Any] = [expected.get("url")]
+        headers = expected.get("headers", {})
+        referer = headers.get("referer") if isinstance(headers, dict) else None
+        if referer is not None:
+            raw_urls.append(referer)
+        for raw_url in raw_urls:
+            urls = raw_url if isinstance(raw_url, list) else [raw_url]
+            for url in urls:
+                if not isinstance(url, str):
+                    continue
+                url = url.replace("^", "").replace("$", "").replace(".*", "")
+                url = url.replace(env_key, "")
+                if url.startswith("__"):
+                    continue
+                if url.startswith("http://") or url.startswith("https://"):
+                    marker = SITE_INPUTS[site_name].base_url
+                    if url.startswith(marker):
+                        url = url[len(marker):]
+                if url.startswith("/"):
+                    candidates.append(url)
+    if candidates:
+        return sorted(candidates, key=lambda value: ("?" not in value, len(value)))[0]
     return fallback_path
+
+
+def task_for_planner(task: dict[str, Any], include_eval_metadata: bool) -> dict[str, Any]:
+    """Return the task context that is safe to expose to the planner."""
+
+    if include_eval_metadata:
+        return task
+    hidden_keys = {"eval", "reference_answer", "reference_url", "gold", "oracle"}
+    return {key: value for key, value in task.items() if key not in hidden_keys}
 
 
 def task_goal_reached(page, site_name: str, target_path: str | None = None, success_url_contains: str | None = None, step_index: int = 0) -> bool:
@@ -194,6 +211,9 @@ def task_goal_reached(page, site_name: str, target_path: str | None = None, succ
     if site_name == "shopping" and target_path:
         target_slug = target_path.rsplit("/", maxsplit=1)[-1].replace(".html", "")
         return target_slug in page.url or "bruxism-night-guard" in page.url
+    if site_name == "shopping":
+        product_keywords = ["guard", "mouth", "teeth", "night", "dental", "bruxism"]
+        return page.url.endswith(".html") and any(keyword in page.url.lower() for keyword in product_keywords)
     if target_path and target_path != "/":
         return target_path.rstrip("/") in page.url.rstrip("/")
     if site_name in {"reddit", "wikipedia"}:
@@ -204,6 +224,7 @@ def task_goal_reached(page, site_name: str, target_path: str | None = None, succ
 def evaluate_runtime_state(
     page,
     site_name: str,
+    task_id: int | None,
     step_index: int,
     subgoal: Any,
     previous_urls: list[str],
@@ -212,9 +233,9 @@ def evaluate_runtime_state(
 ):
     """Dispatch to the site-specific internal runtime evaluator."""
 
-    if site_name == "gitlab":
+    if site_name == "gitlab" and task_id == HARDCODED_TASKS["gitlab"].task_id:
         return evaluate_gitlab_task44_state(page, step_index, subgoal, previous_urls)
-    if site_name == "shopping" and target_path is not None:
+    if site_name == "shopping":
         return evaluate_shopping_task118_state(page, step_index, subgoal, previous_urls, target_path)
     return evaluate_generic_site_state(page, step_index, subgoal, previous_urls, target_path, success_url_contains)
 
@@ -226,16 +247,29 @@ def main() -> int:
     parser.add_argument("--tasks-file", type=Path, default=Path("output/tasks.demo.json"))
     parser.add_argument("--task-id", type=int)
     parser.add_argument("--output-root", type=Path)
-    parser.add_argument("--config", type=Path, default=Path("examples/configs/config.demo.json"))
+    parser.add_argument(
+        "--config",
+        type=Path,
+        help="Optional WebArena-Verified config. If omitted, a site config is generated from scripts/webarena_exp/site_definitions.py.",
+    )
     parser.add_argument("--h", type=int, default=0, help="Planning horizon. 0 means full LLM plan.")
     parser.add_argument("--k", type=int, default=1, help="Run evaluator after every k executor steps.")
-    parser.add_argument("--planner-mode", choices=["ollama"], default="ollama")
+    parser.add_argument("--planner-mode", choices=["ollama", "scripted"], default="ollama")
+    parser.add_argument("--executor-mode", choices=["heuristic", "llm"], default="heuristic")
     parser.add_argument("--model", default="gemma4:26b")
+    parser.add_argument("--executor-model", default=None)
     parser.add_argument("--ollama-base-url", default="http://localhost:11434")
     parser.add_argument("--prompt-path", type=Path, default=Path("prompts/planner_system.md"))
     parser.add_argument("--user-template-path", type=Path, default=Path("prompts/prompt_user_template.md"))
+    parser.add_argument("--executor-prompt-path", type=Path, default=Path("prompts/executor_system.md"))
     parser.add_argument("--max-steps", type=int, default=5)
     parser.add_argument("--max-planner-calls", type=int, default=5)
+    parser.add_argument(
+        "--target-hint-mode",
+        choices=["eval", "none"],
+        default="eval",
+        help="Whether evaluator-derived target hints are exposed to planner/executor. Use 'none' for no-oracle agent tests.",
+    )
     parser.add_argument("--headed", action="store_true")
     parser.add_argument("--skip-eval", action="store_true")
     args = parser.parse_args()
@@ -253,7 +287,7 @@ def main() -> int:
     task_label = str(task_id) if task_id is not None else "direct"
     task_output_dir = output_root / args.site / task_label if args.output_root is None else output_root / task_label
     task_output_dir.mkdir(parents=True, exist_ok=True)
-    if args.site == "gitlab":
+    if args.site == "gitlab" and args.config is not None:
         config = args.config if args.config.is_absolute() else repo_root / args.config
     else:
         config = write_site_config(repo_root, site_input, task_output_dir / "configs")
@@ -264,29 +298,46 @@ def main() -> int:
     started = time.perf_counter()
     task = load_or_render_task(repo_root, args.site, task_id, config, task_output_dir, tasks_file)
     start_url = task["start_urls"][0]
-    target_path = expected_target_path(task, args.site, site_spec.target_path)
+    official_target_path = expected_target_path(task, args.site, site_spec.target_path)
+    target_path = official_target_path if args.target_hint_mode == "eval" else None
+    planner_task = task_for_planner(task, include_eval_metadata=args.target_hint_mode == "eval")
     success_url_contains = site_spec.success_url_contains
+    credentials = None
+    if site_input.credentials is not None:
+        credentials = (site_input.credentials.username, site_input.credentials.password)
     if args.site == "gitlab":
-        target_url = absolute_url(site_input.base_url, target_path) if target_path else task44_target_url(start_url)
+        target_url = absolute_url(site_input.base_url, target_path) if target_path else None
         credentials = load_gitlab_credentials(config)
-        if task_id == HARDCODED_TASKS["gitlab"].task_id:
+        if args.executor_mode == "llm":
+            executor = LLMActionExecutor(
+                site_name=args.site,
+                task=planner_task,
+                credentials=credentials,
+                model_name=args.executor_model or args.model,
+                ollama_base_url=args.ollama_base_url,
+                prompt_path=args.executor_prompt_path,
+            )
+        elif task_id == HARDCODED_TASKS["gitlab"].task_id and target_url is not None:
             executor = Task44ScriptedExecutor(target_url=target_url, credentials=credentials)
         else:
             executor = GenericNavigateExecutor(site_name=args.site, target_url=target_url, credentials=credentials)
+    elif args.executor_mode == "llm":
+        executor = LLMActionExecutor(
+            site_name=args.site,
+            task=planner_task,
+            credentials=credentials,
+            model_name=args.executor_model or args.model,
+            ollama_base_url=args.ollama_base_url,
+            prompt_path=args.executor_prompt_path,
+        )
     elif args.site == "shopping" and target_path is not None:
         target_url = absolute_url(start_url, target_path)
         executor = ShoppingTask118Executor(start_url=start_url, target_path=target_path)
     elif target_path is not None:
         target_url = absolute_url(site_input.base_url, target_path)
-        credentials = None
-        if site_input.credentials is not None:
-            credentials = (site_input.credentials.username, site_input.credentials.password)
         executor = GenericNavigateExecutor(site_name=args.site, target_url=target_url, credentials=credentials)
     else:
         target_url = None
-        credentials = None
-        if site_input.credentials is not None:
-            credentials = (site_input.credentials.username, site_input.credentials.password)
         executor = GenericNavigateExecutor(site_name=args.site, target_url=None, credentials=credentials)
     assert_site_reachable(start_url)
 
@@ -296,10 +347,12 @@ def main() -> int:
     previous_urls: list[str] = []
     step_index = 0
     planner_call_count = 0
+    executor_call_count = 0
     plan_subgoals_generated = 0
     total_tokens = 0
     prompt_tokens = 0
     completion_tokens = 0
+    executor_tokens = 0
     all_planner_warnings: list[str] = []
     plan = None
     last_signal = None
@@ -326,7 +379,7 @@ def main() -> int:
         while not task_goal_reached(page, args.site, target_path, success_url_contains, step_index) and step_index < args.max_steps and planner_call_count < args.max_planner_calls:
             previous_plan = plain(plan) if plan is not None else None
             planner_request = PlannerRequest(
-                task=task,
+                task=planner_task,
                 site_name=args.site,
                 h=args.h,
                 target_hint=target_path,
@@ -360,6 +413,11 @@ def main() -> int:
                 planner_artifacts.prompt,
                 planner_artifacts.raw_response,
                 planner_artifacts.warnings,
+                planner_artifacts.prompt_tokens,
+                planner_artifacts.completion_tokens,
+                planner_artifacts.total_tokens,
+                planner_artifacts.elapsed_ms,
+                planner_artifacts.model_name or args.model,
             )
             if planner_call_count == 1:
                 logger.write_plan(plan)
@@ -375,6 +433,7 @@ def main() -> int:
             if not active_subgoals:
                 raise RuntimeError("Planner returned no subgoals")
 
+            needs_replan = False
             for subgoal in active_subgoals:
                 if step_index >= args.max_steps or task_goal_reached(page, args.site, target_path, success_url_contains, step_index):
                     break
@@ -388,31 +447,63 @@ def main() -> int:
 
                         step_index = executor_step.step_index
                         logger.log_executor_step(executor_step)
+                        last_executor_artifacts = getattr(executor, "last_artifacts", None)
+                        if last_executor_artifacts is not None:
+                            executor_call_count += 1
+                            if last_executor_artifacts.total_tokens is not None:
+                                total_tokens += last_executor_artifacts.total_tokens
+                                executor_tokens += last_executor_artifacts.total_tokens
+                            if last_executor_artifacts.prompt_tokens is not None:
+                                prompt_tokens += last_executor_artifacts.prompt_tokens
+                            if last_executor_artifacts.completion_tokens is not None:
+                                completion_tokens += last_executor_artifacts.completion_tokens
+                            logger.write_executor_call(
+                                executor_call_count,
+                                subgoal.id,
+                                last_executor_artifacts.prompt,
+                                last_executor_artifacts.raw_response,
+                                {
+                                    "subgoal_id": last_executor_artifacts.decision.subgoal_id,
+                                    "action": last_executor_artifacts.decision.action,
+                                    "action_type": last_executor_artifacts.decision.action_type,
+                                    "rationale_summary": last_executor_artifacts.decision.rationale_summary,
+                                    "expected_observation": last_executor_artifacts.decision.expected_observation,
+                                },
+                                last_executor_artifacts.prompt_tokens,
+                                last_executor_artifacts.completion_tokens,
+                                last_executor_artifacts.total_tokens,
+                                last_executor_artifacts.elapsed_ms,
+                                last_executor_artifacts.model_name or args.executor_model or args.model,
+                            )
+                            setattr(executor, "last_artifacts", None)
                         previous_urls.append(page.url)
                         goal_reached = task_goal_reached(page, args.site, target_path, success_url_contains, step_index)
                         should_validate = step_index % args.k == 0 or goal_reached
 
                         if should_validate:
-                            last_signal = evaluate_runtime_state(page, args.site, step_index, subgoal, previous_urls, target_path, success_url_contains)
+                            last_signal = evaluate_runtime_state(page, args.site, task_id, step_index, subgoal, previous_urls, target_path, success_url_contains)
                             logger.log_evaluator_signal(last_signal)
                             last_decision = decide_next_action(last_signal, step_index >= args.max_steps)
                             logger.log_controller_decision(last_decision)
                             final_decision = last_decision.decision
                             subgoal_done = last_signal.subgoal_done or goal_reached
+                            if last_decision.decision in {"local_replan", "global_replan"}:
+                                needs_replan = True
+                                subgoal_done = True
                             if last_decision.decision == "abort":
                                 break
                         elif args.site != "shopping":
                             subgoal_done = True
 
                         bar.update(1)
-                        if final_decision == "abort" or goal_reached:
+                        if final_decision == "abort" or goal_reached or needs_replan:
                             subgoal_done = True
                             break
 
                     if final_decision == "abort":
                         break
 
-                if final_decision == "abort":
+                if final_decision == "abort" or needs_replan:
                     break
 
             if final_decision == "abort":
@@ -465,13 +556,19 @@ def main() -> int:
         "h": args.h,
         "k": args.k,
         "planner_mode": plan.planner_mode,
+        "executor_mode": args.executor_mode,
         "model": args.model,
+        "target_hint_mode": args.target_hint_mode,
+        "official_target_path": official_target_path,
+        "agent_target_hint": target_path,
         "planner_warnings": all_planner_warnings,
         "num_planner_calls": planner_call_count,
+        "num_executor_calls": executor_call_count,
         "num_plan_subgoals_generated": plan_subgoals_generated,
         "total_steps": step_index,
         "total_runtime_ms": elapsed_ms,
         "total_tokens": total_tokens,
+        "executor_tokens": executor_tokens,
         "prompt_tokens": prompt_tokens,
         "completion_tokens": completion_tokens,
         "final_url": final_url,

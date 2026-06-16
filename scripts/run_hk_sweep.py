@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a small H/k sweep for local WebArena-Verified prototypes."""
+"""Run H/k sweeps for one or more local WebArena-Verified tasks."""
 
 from __future__ import annotations
 
@@ -13,12 +13,88 @@ from tqdm import tqdm
 
 from webarena_exp.hardcoded_tasks import HARDCODED_TASKS
 from webarena_exp.io_utils import read_json, write_json
+from webarena_exp.site_definitions import SITE_INPUTS
+
+
+SUPPORTED_SITES = ("gitlab", "shopping", "shopping_admin", "reddit", "wikipedia")
 
 
 def model_slug(model: str) -> str:
     """Convert an Ollama model name into a filesystem-friendly slug."""
 
     return model.replace(":", "-").replace("/", "-")
+
+
+def load_dataset_tasks(repo_root: Path) -> dict[int, dict]:
+    """Load the WebArena-Verified task metadata indexed by task id."""
+
+    dataset_path = repo_root / "assets" / "dataset" / "webarena-verified.json"
+    return {int(task["task_id"]): task for task in read_json(dataset_path)}
+
+
+def load_subset_task_ids(path: Path) -> list[int]:
+    """Load task ids from a WebArena-Verified subset export or task list."""
+
+    data = read_json(path)
+    if isinstance(data, dict) and "task_ids" in data:
+        return [int(task_id) for task_id in data["task_ids"]]
+    if isinstance(data, list):
+        return [int(task["task_id"]) for task in data]
+    raise ValueError(f"Unsupported subset/task file shape: {path}")
+
+
+def infer_site(task: dict, requested_site: str) -> str | None:
+    """Infer the single local site for a task, or return None if unsupported."""
+
+    task_sites = task.get("sites", [])
+    if requested_site != "auto":
+        return requested_site if task_sites == [requested_site] else None
+    sites = [site for site in task_sites if site in SUPPORTED_SITES and SITE_INPUTS[site].enabled]
+    if len(sites) == 1:
+        return sites[0]
+    return None
+
+
+def resolve_task_specs(args: argparse.Namespace, repo_root: Path) -> list[tuple[str, int | None]]:
+    """Resolve CLI task selection into concrete (site, task_id) runs."""
+
+    dataset_tasks = load_dataset_tasks(repo_root)
+    if args.task_ids:
+        task_ids = args.task_ids
+    elif args.task_id is not None:
+        task_ids = [args.task_id]
+    elif args.subset_file is not None:
+        subset_path = args.subset_file if args.subset_file.is_absolute() else repo_root / args.subset_file
+        task_ids = load_subset_task_ids(subset_path)
+    else:
+        if args.site == "auto":
+            raise ValueError("Use --task-ids/--task-id/--subset-file when --site auto is selected.")
+        return [(args.site, HARDCODED_TASKS[args.site].task_id)]
+
+    if args.limit is not None:
+        task_ids = task_ids[: args.limit]
+
+    specs: list[tuple[str, int | None]] = []
+    skipped: list[tuple[int, list[str]]] = []
+    for task_id in task_ids:
+        task = dataset_tasks.get(int(task_id))
+        if task is None:
+            raise ValueError(f"Task id not found in dataset: {task_id}")
+        site = infer_site(task, args.site)
+        if site is None:
+            skipped.append((int(task_id), task.get("sites", [])))
+            continue
+        specs.append((site, int(task_id)))
+
+    if skipped:
+        print("Skipped tasks that are not single-site in the current local scope:")
+        for task_id, sites in skipped[:20]:
+            print(f"  task={task_id} sites={sites}")
+        if len(skipped) > 20:
+            print(f"  ... {len(skipped) - 20} more")
+    if not specs:
+        raise ValueError("No runnable tasks selected.")
+    return specs
 
 
 def run_one(
@@ -29,6 +105,7 @@ def run_one(
     h: int,
     k: int,
     model: str,
+    planner_mode: str,
     headed: bool,
     skip_eval: bool,
 ) -> dict:
@@ -37,7 +114,7 @@ def run_one(
     run_root = output_root / model_slug(model) / f"h{h}_k{k}"
     command = [
         sys.executable,
-        "scripts/run_hk_task44_prototype.py",
+        "scripts/run_hk_task.py",
         "--repo-root",
         str(repo_root),
         "--site",
@@ -45,7 +122,7 @@ def run_one(
         "--output-root",
         str(run_root),
         "--planner-mode",
-        "ollama",
+        planner_mode,
         "--model",
         model,
         "--h",
@@ -135,35 +212,43 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo-root", type=Path, default=Path("external/webarena-verified"))
     parser.add_argument("--output-root", type=Path, default=Path("output/hk-sweep"))
-    parser.add_argument("--site", choices=["gitlab", "shopping", "shopping_admin", "reddit", "wikipedia"], default="gitlab")
+    parser.add_argument("--site", choices=["auto", *SUPPORTED_SITES], default="gitlab")
     parser.add_argument("--task-id", type=int)
+    parser.add_argument("--task-ids", type=int, nargs="+")
+    parser.add_argument("--subset-file", type=Path, help="WebArena-Verified subset export or rendered task list.")
+    parser.add_argument("--limit", type=int, help="Only run the first N selected task ids.")
     parser.add_argument("--hs", type=int, nargs="+", default=[0, 1, 2])
     parser.add_argument("--ks", type=int, nargs="+", default=[1, 2])
     parser.add_argument("--model", default="gemma4:26b")
+    parser.add_argument("--planner-mode", choices=["ollama", "scripted"], default="ollama")
     parser.add_argument("--headed", action="store_true")
     parser.add_argument("--skip-eval", action="store_true")
     args = parser.parse_args()
 
     repo_root = args.repo_root.resolve()
-    task_id = args.task_id if args.task_id is not None else HARDCODED_TASKS[args.site].task_id
     output_root = args.output_root if args.output_root.is_absolute() else repo_root / args.output_root
     output_root.mkdir(parents=True, exist_ok=True)
 
+    task_specs = resolve_task_specs(args, repo_root)
     configs = [(h, k) for h in args.hs for k in args.ks]
     rows = []
-    with tqdm(total=len(configs), desc="H/k sweep", unit="run") as bar:
-        for h, k in configs:
-            tqdm.write(f"[RUN] site={args.site} task={task_id} h={h} k={k} model={args.model}")
-            row = run_one(repo_root, output_root, args.site, task_id, h, k, args.model, args.headed, args.skip_eval)
-            rows.append(row)
-            status = "OK" if row["returncode"] == 0 else "FAIL"
-            tqdm.write(f"[{status}] h={h} k={k} score={row.get('score')} success={row.get('success')}")
-            bar.update(1)
+    with tqdm(total=len(task_specs) * len(configs), desc="H/k sweep", unit="run") as bar:
+        multi_task = len(task_specs) > 1
+        for site, task_id in task_specs:
+            task_output_root = output_root / site / (str(task_id) if task_id is not None else "direct") if multi_task else output_root
+            for h, k in configs:
+                tqdm.write(f"[RUN] site={site} task={task_id} h={h} k={k} model={args.model}")
+                row = run_one(repo_root, task_output_root, site, task_id, h, k, args.model, args.planner_mode, args.headed, args.skip_eval)
+                rows.append(row)
+                status = "OK" if row["returncode"] == 0 else "FAIL"
+                tqdm.write(f"[{status}] site={site} task={task_id} h={h} k={k} score={row.get('score')} success={row.get('success')}")
+                bar.update(1)
 
     summary = {
         "site": args.site,
-        "task_id": task_id,
+        "task_ids": [task_id for _, task_id in task_specs],
         "model": args.model,
+        "planner_mode": args.planner_mode,
         "hs": args.hs,
         "ks": args.ks,
         "rows": rows,

@@ -192,13 +192,13 @@ code notebooks/07_services_and_hardcoded_tasks.ipynb
 GitLab Task 44 als H/k-Architekturprototyp ausfuehren:
 
 ```bash
-uv run python scripts/run_hk_task44_prototype.py --site gitlab --planner-mode ollama --model gemma4:26b --h 0 --k 1
+uv run python scripts/run_hk_task.py --site gitlab --planner-mode ollama --model gemma4:26b --h 0 --k 1
 ```
 
 Shopping Task 118 als laengeres H/k-Beispiel mit mehreren Browser-Aktionen pro Subgoal ausfuehren:
 
 ```bash
-uv run python scripts/run_hk_task44_prototype.py --site shopping --planner-mode ollama --model gemma4:26b --h 0 --k 1 --max-steps 5
+uv run python scripts/run_hk_task.py --site shopping --planner-mode ollama --model gemma4:26b --h 0 --k 1 --max-steps 5
 ```
 
 Kleinen H/k-Sweep fuer GitLab Task 44 ausfuehren:
@@ -206,6 +206,146 @@ Kleinen H/k-Sweep fuer GitLab Task 44 ausfuehren:
 ```bash
 uv run python scripts/run_hk_sweep.py --site gitlab --hs 0 1 2 --ks 1 2 --model gemma4:26b
 ```
+
+### Main Execution fuer die Thesis-Laeufe
+
+Der zentrale Einstiegspunkt fuer reproduzierbare H/k-Laeufe ist:
+
+```bash
+uv run python scripts/main_execution.py
+```
+
+Dieser Runner schreibt bewusst nicht nach `external/`, sondern nach:
+
+```text
+runs/hk-test/<experiment-name>/
+```
+
+Task 44 sichtbar als Smoke-Test ausfuehren:
+
+```bash
+WA_GITLAB=http://localhost:8023 \
+WA_GITLAB_USERNAME=byteblaze \
+WA_GITLAB_PASSWORD=hello1234 \
+uv run python scripts/main_execution.py --task-ids 44 --experiment-name task44-headed-smoke --hs 0 --ks 1 --planner-mode ollama --model gemma4:26b --headed
+```
+
+LLM-basierten Action-Executor ohne Oracle-Zielhint testen:
+
+```bash
+WA_GITLAB=http://localhost:8023 \
+WA_GITLAB_USERNAME=byteblaze \
+WA_GITLAB_PASSWORD=hello1234 \
+uv run python scripts/main_execution.py --task-ids 105 --experiment-name task105-llm-executor-nohint-smoke --hs 0 --ks 1 --planner-mode ollama --executor-mode llm --model gemma4:26b --target-hint-mode none --max-planner-calls 1 --max-steps 4
+```
+
+Die Architektur und ein Task-105-Beispiel sind dokumentiert in:
+
+```bash
+code docs/llm_executor_architecture.md
+```
+
+Mehrere Task-IDs mit mehreren H/k-Kombinationen ausfuehren:
+
+```bash
+WA_GITLAB=http://localhost:8023 \
+WA_GITLAB_USERNAME=byteblaze \
+WA_GITLAB_PASSWORD=hello1234 \
+uv run python scripts/main_execution.py --task-ids 44 105 --experiment-name gitlab-hard-sample --hs 0 1 2 --ks 1 2 --planner-mode ollama --model gemma4:26b
+```
+
+Hard-Subset-Smoke mit den ersten fuenf Hard-Tasks:
+
+```bash
+WA_GITLAB=http://localhost:8023 \
+WA_GITLAB_USERNAME=byteblaze \
+WA_GITLAB_PASSWORD=hello1234 \
+uv run python scripts/main_execution.py --subset-name webarena-verified-hard --limit 5 --experiment-name hard-subset-smoke --hs 0 --ks 1 --planner-mode ollama --model gemma4:26b
+```
+
+Vollstaendiger Hard-Subset-Lauf:
+
+```bash
+WA_GITLAB=http://localhost:8023 \
+WA_GITLAB_USERNAME=byteblaze \
+WA_GITLAB_PASSWORD=hello1234 \
+uv run python scripts/main_execution.py --subset-name webarena-verified-hard --experiment-name hard-subset-gemma4-26b --hs 0 1 2 --ks 1 2 --planner-mode ollama --model gemma4:26b
+```
+
+Der Runner schreibt oben pro Experiment `experiment_config.json`,
+`selected_tasks.json`, `summary.json` und `summary.csv`. Pro Task/H/k-Lauf
+werden unter anderem `task_input.json`, `planner_prompt.md`,
+`planner_raw_response.txt`, `planner_calls.jsonl`, `run_trace.json`,
+`step_trace.jsonl`, `agent_response.json`, `eval_result.json` und
+`network.har` gespeichert. Bei `--executor-mode llm` kommen
+`executor_calls.jsonl` und `executor_calls/call_XX/` mit Executor-Prompt,
+Raw Response, Aktion, Tokenzahlen und Laufzeit hinzu.
+
+Wichtige Einschraenkung: Der aktuelle technische Stand kann Single-Site-Tasks
+ohne Map lokal ausfuehren. Multi-Site- und Map-Tasks werden im Main-Runner
+als `skipped` dokumentiert, bis Multi-Environment-Ausfuehrung und Map-Storage
+Teil des Experiments sind. Dadurch bleibt der Hard-Subset-Task-Pool voll
+nachvollziehbar, ohne dass nicht unterstuetzte Tasks still verschwinden.
+
+Zweite wichtige Einschraenkung: Der aktuelle Planner/Executor-Pfad ist fuer
+Smoke- und Kontrolllaeufe noch oracle-gestuetzt, weil Zielpfade aus
+Evaluator-Metadaten als `target_hint` bzw. Navigationsziel genutzt werden
+koennen. Das ist gut, um Logging, H/k-Ablauf und offizielle Evaluation zu
+pruefen. Fuer faire autonome Agentenmessungen muss dieser Oracle-Anteil aus
+Planner-Prompt und Executor entfernt oder als eigene Kontrollbedingung
+ausgewiesen werden.
+
+Hinweis zu laengeren offiziellen GitLab-Tasks: Das Demo-GitLab aus
+`uv run invoke -r examples gitlab-start` laeuft auf `http://localhost:8012`
+und enthaelt keine befuellten Benchmark-Projekte. Tasks wie 105 erwarten
+das WebArena-Verified-GitLab-Image auf `http://localhost:8023`.
+
+```bash
+cd external/webarena-verified
+uv run webarena-verified env start --site gitlab
+cd ../..
+
+WA_GITLAB=http://localhost:8023 \
+WA_GITLAB_USERNAME=byteblaze \
+WA_GITLAB_PASSWORD=hello1234 \
+uv run python scripts/run_hk_sweep.py --site gitlab --task-id 105 --output-root output/hk-sweep/gitlab-long-task105 --hs 0 1 2 --ks 1 2 --model gemma4:26b
+```
+
+Deterministischer Gegencheck ohne LLM-Planner:
+
+```bash
+WA_GITLAB=http://localhost:8023 \
+WA_GITLAB_USERNAME=byteblaze \
+WA_GITLAB_PASSWORD=hello1234 \
+uv run python scripts/run_hk_sweep.py --site gitlab --task-id 105 --output-root output/hk-sweep/gitlab-long-task105-scripted --hs 0 1 2 --ks 1 2 --planner-mode scripted --model scripted
+```
+
+Mehrere Task-IDs nacheinander ausfuehren und die Site automatisch aus dem
+WebArena-Verified-Datensatz ableiten:
+
+```bash
+WA_GITLAB=http://localhost:8023 \
+WA_GITLAB_USERNAME=byteblaze \
+WA_GITLAB_PASSWORD=hello1234 \
+uv run python scripts/run_hk_sweep.py --site auto --task-ids 44 105 --output-root output/hk-sweep/gitlab-hard-sample --hs 0 1 2 --ks 1 2 --planner-mode ollama --model gemma4:26b
+```
+
+Hard-Subset exportieren und als Evaluationsbasis verwenden:
+
+```bash
+cd external/webarena-verified
+uv run webarena-verified subset-export --name webarena-verified-hard --output output/webarena-verified-hard.json
+cd ../..
+
+WA_GITLAB=http://localhost:8023 \
+WA_GITLAB_USERNAME=byteblaze \
+WA_GITLAB_PASSWORD=hello1234 \
+uv run python scripts/run_hk_sweep.py --site auto --subset-file output/webarena-verified-hard.json --limit 5 --output-root output/hk-sweep/hard-subset-smoke --hs 0 --ks 1 --planner-mode ollama --model gemma4:26b
+```
+
+Hinweis: `scripts/run_hk_sweep.py` bleibt als kleiner Entwicklungsrunner
+nuetzlich. Fuer Thesis-Laeufe mit sauberer Ablage und zusammenfassenden
+Metriken ist `scripts/main_execution.py` der bevorzugte Einstiegspunkt.
 
 Kleinen H/k-Sweep fuer Shopping Task 118 ausfuehren:
 

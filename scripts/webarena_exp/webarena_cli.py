@@ -53,6 +53,17 @@ def run_webarena_cli(repo_root: Path, args: list[str]) -> subprocess.CompletedPr
     )
 
 
+def cli_path(repo_root: Path, path: Path) -> str:
+    """Return a stable path string for a WebArena-Verified CLI argument."""
+
+    if not path.is_absolute():
+        return str(path)
+    try:
+        return str(path.relative_to(repo_root))
+    except ValueError:
+        return str(path)
+
+
 def export_candidate_tasks(
     repo_root: Path,
     site: SiteInput,
@@ -61,7 +72,6 @@ def export_candidate_tasks(
 ) -> list[dict]:
     """Export candidate tasks for one site and task type."""
 
-    relative_output = output_path.relative_to(repo_root) if output_path.is_absolute() else output_path
     proc = run_webarena_cli(
         repo_root,
         [
@@ -71,7 +81,7 @@ def export_candidate_tasks(
             "--task-type",
             task_type,
             "--output",
-            str(relative_output),
+            cli_path(repo_root, output_path),
         ],
     )
     if proc.returncode != 0:
@@ -87,8 +97,6 @@ def export_agent_input(
 ) -> list[dict]:
     """Render one task into concrete agent input using a local config."""
 
-    relative_config = config_path.relative_to(repo_root) if config_path.is_absolute() else config_path
-    relative_output = output_path.relative_to(repo_root) if output_path.is_absolute() else output_path
     proc = run_webarena_cli(
         repo_root,
         [
@@ -96,9 +104,9 @@ def export_agent_input(
             "--task-ids",
             str(task_id),
             "--config",
-            str(relative_config),
+            cli_path(repo_root, config_path),
             "--output",
-            str(relative_output),
+            cli_path(repo_root, output_path),
         ],
     )
     if proc.returncode != 0:

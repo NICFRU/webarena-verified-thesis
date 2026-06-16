@@ -6,7 +6,9 @@ browsergym
 browsergym-webarena-verified
 python-dotenv
 pandas
+openpyxl
 ipykernel
+beautifulsoup4
 
 # WebArena-Verified is actively developed. The package is available on PyPI,
 # while the BrowserGym integration docs may still recommend installing from

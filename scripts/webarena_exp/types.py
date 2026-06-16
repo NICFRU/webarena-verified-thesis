@@ -72,6 +72,9 @@ class PlannerRequest:
     previous_plan: dict[str, Any] | None = None
     evaluator_feedback: dict[str, Any] | None = None
     controller_decision: dict[str, Any] | None = None
+    agent_architecture: str = "v1"
+    plan_history: dict[str, Any] | None = None
+    previous_actions: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -99,6 +102,17 @@ class ExecutorStep:
     status: str
     page_title: str | None = None
     error: str | None = None
+
+
+@dataclass(frozen=True)
+class ExecutorActionDecision:
+    """One concrete action selected by an action-level executor agent."""
+
+    subgoal_id: str
+    action: str
+    action_type: str
+    rationale_summary: str | None = None
+    expected_observation: str | None = None
 
 
 @dataclass(frozen=True)

@@ -43,6 +43,13 @@ def service_start_spec(repo_root: Path, site: SiteInput) -> ServiceStartSpec:
     """Build the service-specific start command."""
 
     if site.name == "gitlab":
+        if "8023" in site.base_url:
+            return ServiceStartSpec(
+                site=site.name,
+                container_name="webarena-verified-gitlab",
+                command=["uv", "run", "webarena-verified", "env", "start", "--site", "gitlab"],
+                cwd=repo_root,
+            )
         return ServiceStartSpec(
             site=site.name,
             container_name="wa-demo-gitlab",
@@ -90,4 +97,3 @@ def service_status(repo_root: Path, site: SiteInput) -> ServiceStatus:
         docker_status=docker_status,
         start_command=spec.command,
     )
-

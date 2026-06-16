@@ -15,7 +15,7 @@ def evaluate_gitlab_task44_state(page, step_index: int, subgoal: Subgoal, previo
     current_url = page.url
     at_todos = "/dashboard/todos" in current_url
     login_visible = page.locator("#user_login").count() > 0
-    repeated_url = len(previous_urls) >= 2 and previous_urls[-1] == current_url and previous_urls[-2] == current_url
+    repeated_url = len(previous_urls) >= 3 and previous_urls[-1] == current_url and previous_urls[-2] == current_url and previous_urls[-3] == current_url
     subgoal_text = f"{subgoal.objective} {subgoal.expected_outcome}".lower()
 
     if any(keyword in subgoal_text for keyword in ["todo", "todos", "/dashboard/todos"]):
@@ -57,15 +57,17 @@ def evaluate_shopping_task118_state(
     step_index: int,
     subgoal: Subgoal,
     previous_urls: list[str],
-    target_path: str,
+    target_path: str | None,
 ) -> EvaluatorSignal:
     """Evaluate local progress for the shopping bruxism product task."""
 
     current_url = page.url
-    target_slug = target_path.rsplit("/", maxsplit=1)[-1].replace(".html", "")
-    at_product = target_slug in current_url or "bruxism-night-guard" in current_url
+    target_slug = target_path.rsplit("/", maxsplit=1)[-1].replace(".html", "") if target_path else None
+    product_keywords = ["guard", "mouth", "teeth", "night", "dental", "bruxism"]
+    at_keyword_product = current_url.endswith(".html") and any(keyword in current_url.lower() for keyword in product_keywords)
+    at_product = bool(target_slug and target_slug in current_url) or "bruxism-night-guard" in current_url or at_keyword_product
     at_search = "catalogsearch/result" in current_url
-    repeated_url = len(previous_urls) >= 2 and previous_urls[-1] == current_url and previous_urls[-2] == current_url
+    repeated_url = len(previous_urls) >= 3 and previous_urls[-1] == current_url and previous_urls[-2] == current_url and previous_urls[-3] == current_url
     subgoal_text = f"{subgoal.objective} {subgoal.expected_outcome}".lower()
 
     if any(keyword in subgoal_text for keyword in ["product", "bruxism", "mouth", "guard", "dental", "search", "find"]):
@@ -119,12 +121,18 @@ def evaluate_generic_site_state(
     """Evaluate generic local progress for simple prototype site tasks."""
 
     current_url = page.url
-    repeated_url = len(previous_urls) >= 2 and previous_urls[-1] == current_url and previous_urls[-2] == current_url
-    target_reached = current_url.startswith("http")
-    if success_url_contains:
+    repeated_url = len(previous_urls) >= 3 and previous_urls[-1] == current_url and previous_urls[-2] == current_url and previous_urls[-3] == current_url
+    subgoal_text = f"{subgoal.objective} {subgoal.expected_outcome}".lower()
+    login_visible = page.locator("#user_login").count() > 0 or page.locator("#username").count() > 0
+
+    if any(keyword in subgoal_text for keyword in ["login", "auth", "authenticated", "sign in"]):
+        target_reached = not login_visible
+    elif success_url_contains:
         target_reached = success_url_contains in current_url
     elif target_path and target_path != "/":
         target_reached = target_path.rstrip("/") in current_url.rstrip("/")
+    else:
+        target_reached = current_url.startswith("http") and not repeated_url
 
     done = target_reached
     reason = "target_reached" if done else "target_not_reached"
