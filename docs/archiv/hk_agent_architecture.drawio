@@ -1,0 +1,128 @@
+<mxfile host="app.diagrams.net" modified="2026-05-14T00:00:00.000Z" agent="Codex" version="24.7.17">
+  <diagram id="hk-agent-architecture" name="H-k Agent Architecture">
+    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="H/k Planner-Executor Architecture for BrowserGym / WebArena-Verified" style="text;html=1;fontSize=24;fontStyle=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="250" y="20" width="1100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="repoBox" value="Local repo: 05_Code" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#666666;fontStyle=1;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="620" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="ollamaBox" value="Local Ollama host&#xa;http://localhost:11434" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="720" y="90" width="340" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="browserBox" value="BrowserGym + Playwright" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="720" y="400" width="340" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="servicesBox" value="Local WebArena services" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="90" width="420" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="evalBox" value="External WebArena-Verified repo&#xa;external/webarena-verified" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="720" y="670" width="820" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="artifactBox" value="Run artifacts&#xa;runs/hk-agent/..." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="40" y="670" width="620" height="230" as="geometry" />
+        </mxCell>
+
+        <mxCell id="user" value="User / Notebook / CLI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="190" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="entry" value="Entry points&#xa;run_hk_agent_task.py&#xa;run_hk_agent_experiment.py&#xa;run_hk_agent_hard_pipeline.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="330" y="115" width="270" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="loader" value="task_loader.py&#xa;loads dataset / hard subset&#xa;builds BrowserGym gym_id&#xa;sets WA_* defaults" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="250" width="230" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="runner" value="runner.py&#xa;H/k loop&#xa;budget + phases&#xa;sanitizes task in agent mode" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="250" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="runtime" value="runtime_evaluator.py&#xa;progress / no-progress&#xa;invalid action / loop signals" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="405" width="230" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="controller" value="controller.py&#xa;continue&#xa;local/global replan&#xa;abort" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="410" width="240" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="plannerModel" value="Planner LLM&#xa;gemma4:26b&#xa;receives system + user messages&#xa;returns Plan JSON" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="765" y="140" width="250" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="executorModel" value="Executor LLM&#xa;gemma4:e4b&#xa;receives system + user messages&#xa;returns Action JSON" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="765" y="250" width="250" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gym" value="BrowserGym env&#xa;browsergym/webarena_verified.*&#xa;records HAR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="765" y="450" width="250" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="page" value="Playwright page&#xa;goto / click / fill / press&#xa;observations: URL, title, text, AX tree" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="765" y="530" width="250" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gitlab" value="GitLab&#xa;WA_GITLAB&#xa;localhost:8023" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="135" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="shopping" value="Shopping&#xa;WA_SHOPPING&#xa;localhost:7770" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="135" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="admin" value="Shopping Admin&#xa;WA_SHOPPING_ADMIN&#xa;localhost:7780/admin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="240" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="reddit" value="Reddit / Postmill&#xa;WA_REDDIT&#xa;localhost:9999" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="245" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="homepage" value="Homepage&#xa;WA_HOMEPAGE&#xa;localhost:4399" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="355" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="wiki" value="Wikipedia&#xa;WA_WIKIPEDIA&#xa;localhost:8888" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="355" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="map" value="Map&#xa;WA_MAP&#xa;separate setup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1255" y="465" width="150" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="officialEval" value="Official Evaluator&#xa;uv run webarena-verified eval-tasks&#xa;uses task_id + config + HAR + agent_response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="765" y="735" width="300" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="dataset" value="Dataset + Hard subset&#xa;webarena-verified.json&#xa;webarena-verified-hard.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1125" y="735" width="330" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="runSummary" value="run_summary.json&#xa;official + runtime metrics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="720" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="traces" value="JSONL traces&#xa;planner_calls&#xa;executor_calls&#xa;step_trace&#xa;runtime signals" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="300" y="705" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="officialArtifacts" value="network.har&#xa;agent_response.json&#xa;eval_result.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="500" y="720" width="130" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="experimentSummary" value="experiment_config.json&#xa;selected_tasks.json&#xa;summary.json / summary.csv" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="180" y="820" width="290" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_user_entry" value="starts experiment" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="user" target="entry"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_entry_loader" value="task ids / sample args" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="entry" target="loader"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_loader_runner" value="HkTask + gym_id" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="loader" target="runner"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_runner_planner" value="sanitized task + observation + feedback" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="runner" target="plannerModel"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_planner_runner" value="Plan JSON" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" parent="1" source="plannerModel" target="runner"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_runner_executor" value="subgoal + candidates + observation" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="runner" target="executorModel"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_executor_runner" value="Action JSON" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" parent="1" source="executorModel" target="runner"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_runner_gym" value="gym.make / env.step(action)" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="runner" target="gym"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_gym_page" value="browser context" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="gym" target="page"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_page_services" value="HTTP requests / UI actions" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="page" target="servicesBox"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_page_runner" value="URL, title, text, AX tree, errors" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" parent="1" source="page" target="runner"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_runner_runtime" value="every k actions" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="runner" target="runtime"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_runtime_controller" value="EvaluatorSignal" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="runtime" target="controller"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_controller_runner" value="continue / replan / abort" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" parent="1" source="controller" target="runner"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_runner_artifacts" value="writes traces + summaries" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="runner" target="artifactBox"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_runner_official" value="HAR + agent_response + config" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="runner" target="officialEval"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_dataset_loader" value="raw tasks + hard ids" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" parent="1" source="dataset" target="loader"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_official_artifacts" value="official_score / official_success" style="endArrow=block;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="officialEval" target="officialArtifacts"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
