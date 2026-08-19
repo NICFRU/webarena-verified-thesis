@@ -15,7 +15,7 @@ from urllib.request import Request, urlopen
 from .types import ExecutorActionDecision, ExecutorStep, Subgoal
 
 
-DEFAULT_EXECUTOR_PROMPT = Path("prompts/executor_system.md")
+DEFAULT_EXECUTOR_PROMPT = Path("prompts/v3/executor_system.md")
 
 
 @dataclass(frozen=True)

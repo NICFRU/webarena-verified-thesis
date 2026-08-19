@@ -64,8 +64,8 @@ def main() -> int:
     parser.add_argument("--planner-mode", choices=["ollama"], default="ollama")
     parser.add_argument("--model", default="gemma4:26b", help="Ollama model name for --planner-mode ollama.")
     parser.add_argument("--ollama-base-url", default="http://localhost:11434")
-    parser.add_argument("--prompt-path", type=Path, default=Path("prompts/planner_system.md"))
-    parser.add_argument("--user-template-path", type=Path, default=Path("prompts/prompt_user_template.md"))
+    parser.add_argument("--prompt-path", type=Path, default=Path("prompts/v3/planner_system.md"))
+    parser.add_argument("--user-template-path", type=Path, default=Path("prompts/v3/prompt_user_template.md"))
     args = parser.parse_args()
 
     repo_root = args.repo_root.resolve()

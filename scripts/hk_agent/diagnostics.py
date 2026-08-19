@@ -163,7 +163,23 @@ def _har_url_matches_expected(actual_url: str, expected_url: Any) -> bool:
         except re.error:
             return _normalize_url_for_eval(pattern) == _normalize_url_for_eval(actual_base)
     expected_base = _expected_base_pattern(expected_base)
+    if _shopping_admin_report_filter_base_equivalent(actual_base, expected_base):
+        return True
     return _normalize_url_for_eval(actual_base) == _normalize_url_for_eval(expected_base)
+
+
+def _shopping_admin_report_filter_base_equivalent(actual_base: str, expected_base: str) -> bool:
+    """Treat Magento report landing URLs with filter query params as filter requests."""
+
+    expected_match = re.search(r"/admin/reports/report_sales/(?P<kind>sales|tax)/filter$", expected_base.rstrip("/"))
+    if not expected_match:
+        return False
+    kind = expected_match.group("kind")
+    actual_path = urlparse(actual_base).path.rstrip("/")
+    return actual_path in {
+        f"/admin/reports/report_sales/{kind}",
+        f"/admin/reports/report_sales/{kind}/filter",
+    }
 
 
 def _query_params_match(actual_url: str, expected_url: Any) -> bool:

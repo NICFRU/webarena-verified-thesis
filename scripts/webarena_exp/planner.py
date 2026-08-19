@@ -18,8 +18,8 @@ from urllib.request import Request, urlopen
 from .types import Plan, PlannerRequest, Subgoal
 
 
-DEFAULT_PLANNER_PROMPT = Path("prompts/planner_system.md")
-DEFAULT_USER_TEMPLATE = Path("prompts/prompt_user_template.md")
+DEFAULT_PLANNER_PROMPT = Path("prompts/v3/planner_system.md")
+DEFAULT_USER_TEMPLATE = Path("prompts/v3/prompt_user_template.md")
 
 
 @dataclass(frozen=True)

@@ -36,7 +36,7 @@ from webarena_exp.types import ExecutorActionDecision, ExecutorStep, Subgoal
 from .prompt_builder import build_executor_system_prompt
 
 
-DEFAULT_EXECUTOR_PROMPT = Path("prompts/executor_system.md")
+DEFAULT_EXECUTOR_PROMPT = Path("prompts/v3/executor_system.md")
 UI_TARGET_ACTION_PREFIXES = ("click(", "fill(", "type(", "press(", "select_option(")
 MUTATION_STATE_EVIDENCE_MARKERS = (
     "visible",

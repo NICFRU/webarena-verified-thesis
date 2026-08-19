@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 
-V2_PROMPT_ROOT = Path("prompts/v2")
+V3_PROMPT_ROOT = Path("prompts/v3")
 WEBARENA_VERIFIED_PROMPT_ROOT = Path("external/webarena-verified/examples/prompts")
 
 SITE_METADATA = {
@@ -205,7 +205,7 @@ def build_executor_system_prompt(
     site_name: str,
     prompt_path: Path,
     architecture: str = "v1",
-    prompt_root: Path = V2_PROMPT_ROOT,
+    prompt_root: Path = V3_PROMPT_ROOT,
 ) -> str:
     """Return the system prompt for the selected executor architecture."""
 

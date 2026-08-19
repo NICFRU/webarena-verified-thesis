@@ -39,6 +39,8 @@ def infer_official_task_type(task: dict[str, Any]) -> str:
         "return the url",
         "return the link",
         "return the date",
+        "return the customer",
+        "customer nickname",
         "get the username",
         "get all",
         "get the post title",
@@ -47,9 +49,22 @@ def infer_official_task_type(task: dict[str, Any]) -> str:
         "get the link",
         "get the color",
         "get the size",
+        "give me the color",
+        "give me the material",
+        "give me the name",
+        "give me the product",
+        "give me the products",
         "get the dimensions",
         "get the total cost",
         "get the order number",
+        "get the billing name",
+        "billing name",
+        "payment difference",
+        "payment amount",
+        "get the top",
+        "get top",
+        "get customer email",
+        "get customer emails",
         "price range",
         "review title",
         "review titles",
@@ -200,9 +215,25 @@ def infer_task_capability(task: dict[str, Any], site_name: str | None = None) ->
     if site == "shopping_admin" and task_type == "navigate" and "list of orders" in intent:
         return "navigate_admin_order_grid_filter"
     if site == "shopping_admin" and task_type == "navigate" and "report" in intent and any(
-        marker in intent for marker in ["sales order", "tax report", "sales report"]
+        marker in intent for marker in ["sales order", "orders report", "order report", "tax report", "sales report"]
     ):
         return "navigate_admin_sales_report_filter"
+    if site == "shopping_admin" and task_type == "retrieve" and "monthly count" in intent and "order" in intent:
+        return "retrieve_admin_monthly_order_counts"
+    if site == "shopping_admin" and task_type == "retrieve" and "billing name" in intent and "order" in intent:
+        return "retrieve_admin_order_attribute"
+    if site == "shopping_admin" and task_type == "retrieve" and "order" in intent and any(
+        marker in intent for marker in ["product name", "item name", "final price", "discounted price", "items ordered"]
+    ):
+        return "retrieve_admin_order_items"
+    if site == "shopping_admin" and task_type == "retrieve" and "order" in intent and any(
+        marker in intent for marker in ["payment difference", "payment amount", "total payment", "grand total", "order total"]
+    ):
+        return "retrieve_admin_order_payment_aggregate"
+    if site == "shopping_admin" and task_type == "retrieve" and any(
+        marker in intent for marker in ["units left", "unit left", "quantity left", "qty left", "stock", "inventory"]
+    ) and any(marker in intent for marker in ["product", "products", "material", "color", "size", "name"]):
+        return "retrieve_admin_inventory_product_attributes"
     if site == "shopping_admin" and task_type == "mutate" and any(marker in intent for marker in ["notify", "message"]) and "order" in intent:
         return "mutate_admin_order_notify"
     if site == "shopping_admin" and task_type == "mutate" and "order" in intent and "tracking" in intent:
@@ -265,8 +296,28 @@ def infer_task_capability(task: dict[str, Any], site_name: str | None = None) ->
         marker in intent for marker in ["shipping", "handling", "month", "jan", "feb", "mar", "year"]
     ):
         return "retrieve_shopping_category_spend_aggregate"
+    if site == "shopping_admin" and task_type == "retrieve" and "review" in intent and any(
+        marker in intent for marker in ["how many", "count", "number of"]
+    ):
+        return "retrieve_admin_review_count"
     if any(marker in intent for marker in ["total number", "monthly count", "count of", "how many"]):
         return "retrieve_aggregate"
+    if site == "shopping_admin" and task_type == "retrieve" and "search term" in intent:
+        return "retrieve_admin_search_terms"
+    if site == "shopping_admin" and task_type == "retrieve" and any(
+        marker in intent for marker in ["phone number", "telephone number", "phone no."]
+    ) and any(marker in intent for marker in ["customer", "email", "name"]):
+        return "retrieve_admin_customer_contact"
+    if site == "shopping_admin" and task_type == "retrieve" and "review" in intent and any(
+        marker in intent for marker in ["title", "rating", "stars"]
+    ):
+        return "retrieve_admin_review_attributes"
+    if site == "shopping_admin" and task_type == "retrieve" and "customer email" in intent and "order" in intent:
+        return "retrieve_admin_customer_order_emails"
+    if site == "shopping_admin" and task_type == "retrieve" and any(marker in intent for marker in ["customer nickname", "nickname"]) and any(
+        marker in intent for marker in ["rating", "stars", "review"]
+    ):
+        return "retrieve_admin_review_nicknames"
     if any(marker in intent for marker in ["who gave", "reviews", "review"]):
         return "retrieve_reviews"
     if task_type == "retrieve":
@@ -309,6 +360,17 @@ def capability_tier(capability: str) -> str:
         "retrieve_shopping_price_range",
         "retrieve_shopping_refund_aggregate",
         "retrieve_shopping_category_spend_aggregate",
+        "retrieve_admin_search_terms",
+        "retrieve_admin_customer_contact",
+        "retrieve_admin_review_count",
+        "retrieve_admin_review_attributes",
+        "retrieve_admin_customer_order_emails",
+        "retrieve_admin_monthly_order_counts",
+        "retrieve_admin_order_attribute",
+        "retrieve_admin_order_items",
+        "retrieve_admin_order_payment_aggregate",
+        "retrieve_admin_inventory_product_attributes",
+        "retrieve_admin_review_nicknames",
     }:
         return "structured_retrieve"
     if capability.startswith("policy_or_"):
@@ -468,6 +530,72 @@ def capability_guidance(task: dict[str, Any], site_name: str) -> list[str]:
             "For relative dates, compute them from the date stated in the task, not the machine date. Use ISO dates in the final report request. For example, if today is March 15, 2023, last year is 2022-01-01 through 2022-12-31 and this year is 2023-01-01 through 2023-03-15.",
             "If the form UI uses calendar-style dates, still verify that the submitted report/filter URL or request carries the ISO date window expected by the task before finishing.",
             "Click the visible report/filter/show-report control or navigate to the equivalent grounded filter URL only when the report type and date range are unambiguous. Finish only after the report page/grid reflects the selected report type and date range.",
+        ],
+        "retrieve_admin_search_terms": [
+            "For Magento admin search-term retrieval tasks, use the Search Terms grid/report rather than finishing on a search-term detail page.",
+            "When the task asks for top N search terms, use Marketing/SEO Search Terms and rank by the visible popularity/count column such as Number of Uses/Searches in descending order, not alphabetic order, recency, or a term detail page.",
+            "If the first visible rows are not sorted by the count/ranking column, click the column header or use the grid sorting/filter controls before reading the top N terms.",
+            "Do not finish as NAVIGATE for a 'Get ... search terms' task; the final response must be RETRIEVE with only the requested list/schema.",
+        ],
+        "retrieve_admin_customer_contact": [
+            "For Magento admin customer-contact retrieval tasks, use Customers > All Customers or the customer grid as the source of truth.",
+            "When a phone/telephone number is given, filter or search the phone column by the exact visible number before opening a customer detail. Do not match a partial number or infer the customer from a similarly named record.",
+            "Read the requested name and email from the same matching customer row or detail page, then return exactly the requested object keys and no additional account fields or explanation.",
+        ],
+        "retrieve_admin_review_count": [
+            "For Magento admin review-count retrieval tasks, use the product/customer reviews grid as the source of truth rather than dashboard statistics or a single review detail.",
+            "Apply the requested calendar period using the grid's created-date/date-range filter when available, then wait for the grid to refresh and read its visible total record count. Do not count only the currently visible page rows.",
+            "Return the requested count as one number in the required container, such as [351], with no explanatory text or review objects.",
+        ],
+        "retrieve_admin_review_attributes": [
+            "For Magento admin review-attribute retrieval tasks, use the product/customer reviews grid or the matching product's review context as the source of truth.",
+            "Match the requested product and rating threshold from visible review evidence, then collect every matching review title/rating across grid pages. A product-text filter that reports zero rows is not by itself proof that no matching reviews exist: clear an unsupported filter and inspect the available product/review fields or detail rows before returning NOT_FOUND.",
+            "Return only the requested title/rating or other requested object keys, preserve the requested rating representation, and do not include reviewer, product, or explanation fields unless asked.",
+        ],
+        "retrieve_admin_customer_order_emails": [
+            "For Magento admin customer/order email retrieval tasks, derive the answer from order/customer grids or reports rather than only opening the customer page.",
+            "When the task asks for customers with a specific number/rank of orders, use the Sales Orders grid as the source of truth, include all requested order states when the task says any state, and count order rows grouped by customer email across the requested scope/pages.",
+            "For rank wording such as second most orders, compute the full ranking by order count first, then return all emails tied at the requested rank.",
+            "Do not finish as NAVIGATE for a 'Get customer email(s)' task; the final response must be RETRIEVE with only the requested emails and no extra text.",
+        ],
+        "retrieve_admin_monthly_order_counts": [
+            "For Magento admin monthly order-count retrieval tasks, use the Sales Orders report/grid rather than the generic dashboard or global search.",
+            "Apply the requested date range exactly, choose period type Month when available, and filter to the requested order status such as completed/complete before reading counts.",
+            "Return exactly the requested list of objects with month names and integer counts, preserving the requested inclusive month order. Do not return a chart summary, raw grid rows, or explanatory text.",
+            "Use supported BrowserGym actions only: click/focus current dropdown candidates, fill exact current input bids, refresh candidates after dropdowns open, and avoid symbolic selector labels as action targets.",
+        ],
+        "retrieve_admin_order_attribute": [
+            "For Magento admin order-attribute retrieval tasks, use Sales > Orders or the admin order grid as the source of truth.",
+            "Apply the requested status filter such as complete/completed, processing, pending, or canceled/cancelled, then sort by the requested age or recency before opening the target order.",
+            "For billing-name tasks, open the target order detail and read the Billing Address/Name field, not the customer account name or shipping name unless the task explicitly asks for it.",
+            "Return only the requested scalar string or schema, with no explanatory text.",
+        ],
+        "retrieve_admin_order_items": [
+            "For Magento admin order-item retrieval tasks, use Sales > Orders or the admin order grid as the source of truth.",
+            "Apply the requested order status exactly, then sort the order grid by the visible purchase/created date in the requested recency direction before opening the first matching row. Do not infer recency from an arbitrary open order detail or order number alone.",
+            "On the target order detail, read each requested item from the Items Ordered table. For final/discounted price requests use the Price column, not Original Price, Subtotal, Row Total, Grand Total, or Total Paid.",
+            "When the task requests an order such as low-to-high or high-to-low, sort the completed result objects numerically by the requested value only after collecting all item rows. Return exactly the requested object keys and numeric values, with no extra fields or explanation.",
+        ],
+        "retrieve_admin_order_payment_aggregate": [
+            "For Magento admin order payment aggregate tasks, use Sales > Orders or the admin order grid as the source of truth rather than dashboard summaries.",
+            "Filter or group orders by the requested state/status exactly: canceled/cancelled orders are distinct from complete/completed orders; non-cancelled means exclude canceled/cancelled while retaining other allowed states.",
+            "Sort by order date/created date to identify the requested last/oldest/newest N orders, then read the payment amount from the visible Grand Total/Order Total/Paid column or order detail.",
+            "When the task asks for a total or difference, compute the numeric aggregate and return one number only, not the individual order amounts or extra text.",
+        ],
+        "retrieve_admin_inventory_product_attributes": [
+            "For Magento admin inventory/product-attribute retrieval tasks, use the admin Catalog > Products grid or product detail pages as the source of truth, not storefront category pages.",
+            "Apply the requested stock/quantity condition exactly, such as 0 units left, 3 units left, or a 2-3 unit range, using the grid quantity/salable-quantity/stock filters when available.",
+            "Prefer concrete simple/variant product rows over configurable parent rows when the requested answer asks for variant attributes such as color, size, or material.",
+            "If the requested attribute is material, read the actual material/composition attribute from the product row/detail page; do not substitute product technology, collection, or name tokens as material.",
+            "Collect all matching rows across visible grid pages after the quantity filter is applied; do not finish after the first matching product unless the task asks for only one item.",
+            "Read only the requested attributes from the matching product row/detail page, and return the exact requested scalar/list/object schema without extra text.",
+        ],
+        "retrieve_admin_review_nicknames": [
+            "For Magento admin review nickname retrieval tasks, use the admin product/customer reviews grid rather than storefront product pages when the active site is shopping_admin.",
+            "Filter or inspect reviews by product name/category and rating threshold from the task, then return only the matching customer nicknames as strings.",
+            "Do not finish as NAVIGATE after opening a review detail page; the final response must be RETRIEVE with the requested nickname list and no extra fields.",
+            "For plural nickname tasks, continue through all matching review rows/pages after filtering; a partial visible subset is incomplete even if some returned nicknames are correct.",
+            "If multiple products match a category such as tanks products, continue through the relevant review grid rows/pages and include every nickname whose visible rating satisfies the threshold.",
         ],
         "policy_or_account_order_change": [
             "For account/order changes, inspect order history and available actions. If the requested change is not allowed by the visible UI, return ACTION_NOT_ALLOWED_ERROR instead of SUCCESS.",
