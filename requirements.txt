@@ -8,6 +8,12 @@ python-dotenv
 pandas
 openpyxl
 ipykernel
+ipython
+jupyter
+jinja2
+matplotlib
+nbformat
+plotly
 beautifulsoup4
 
 # WebArena-Verified is actively developed. The package is available on PyPI,

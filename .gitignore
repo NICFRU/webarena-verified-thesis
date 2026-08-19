@@ -1,10 +1,52 @@
-.venv/
-__pycache__/
+.DS_Store
 .env
+.env.*
+!.env.example
+
+# Lokale Python-/Tooling-Artefakte
+.venv/
+external/**/.venv/
+.uv-cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter lokal
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+.jupyter/
+.codex_jupyter/
+
+# Laufartefakte: die finale CSV liegt kopiert unter thesis_results_output/data/.
 runs/
 results/
 agentlab-results/
-.DS_Store
-#external/
-.ipynb_checkpoints/
-notebooks/.ipynb_checkpoints/
+thesis_results_output_test/
+*.gsheet
+thesis_results_output/data/final_summary copy.*
+external/webarena-verified/
+external/webarena-verified/output/
+
+# Lokale/archivierte Arbeitsnotebooks, nicht fuer die finale Reproduktion noetig
+notebooks/Archiv/
+notebooks/*copy*.ipynb
+notebooks/HK_Utility_Efficiency_Adjusted.ipynb
+
+# Historische externe Referenzimplementierung; v3 nutzt den internen HK-Agentenpfad.
+plan_and_act/
+architecture_v2/
+
+# Grosse interaktive Explorationsdateien aus der Notebookphase
+example_*.html
+runtime_control_architecture*.drawio
+
+notebooks/00_Archiv
+notebooks/Archiv
+notebooks/notebooks
+
+tests/
+scripts/
+
+00_Archiv/

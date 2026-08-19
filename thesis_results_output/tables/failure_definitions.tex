@@ -1,0 +1,30 @@
+\begin{longtable}{ll}
+\caption{failure definitions} \label{tab:failure_definitions} \\
+\toprule
+failure\_category & definition \\
+\midrule
+\endfirsthead
+\caption[]{failure definitions} \\
+\toprule
+failure\_category & definition \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{Continued on next page} \\
+\midrule
+\endfoot
+\bottomrule
+\endlastfoot
+repeated\_llm\_timeout & Wiederholte LLM-Timeouts. \\
+runtime\_exception & Technischer Runnerfehler. \\
+llm\_json\_or\_action\_parse\_failure & Nicht parsebare JSON-/Action-Struktur. \\
+bad\_route\_or\_not\_found & Ungueltige Route oder Not-Found-Seite. \\
+missing\_action\_not\_allowed & Erwartete ACTION\_NOT\_ALLOWED-Antwort fehlt. \\
+missing\_retrieved\_data & Erwartete Daten fehlen. \\
+schema\_or\_value\_mismatch & Antwortschema oder Wert nicht evaluator-konform. \\
+missing\_required\_mutation & Notwendige Mutation fehlt. \\
+planner\_call\_budget\_exhausted & Planner-Call-Budget ausgeschoepft. \\
+step\_budget\_exhausted & Action-Budget ausgeschoepft. \\
+loop\_or\_no\_progress & Loop oder kein beobachtbarer Fortschritt. \\
+official\_eval\_mismatch & Diagnostischer Near-Miss oder Mismatch zwischen Prozessartefakten und offizieller Bewertung. \\
+\end{longtable}

@@ -1,0 +1,14 @@
+{
+  "experiment_name": "hk-agent-browsergym-planact-main-v02_basis_v3",
+  "final_data": {
+    "summary_csv": "data/final_summary.csv",
+    "summary_json": "data/final_summary.json"
+  },
+  "tables_dir": "tables",
+  "figures_dir": "figures",
+  "artifact_counts": {
+    "tables": 91,
+    "figures": 89
+  },
+  "reproducibility_note": "Run notebooks/final_analysis.ipynb from top to bottom. Section 8 rewrites only derived tables and figures, never data/final_summary.csv or data/final_summary.json. It includes H_P/k group comparisons and k>0 axis analyses."
+}

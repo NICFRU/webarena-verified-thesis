@@ -1,0 +1,44 @@
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \renewcommand{\arraystretch}{1.12}
+    \begin{tabular}{llrrrr}
+        \toprule
+        & &
+        \multicolumn{4}{c}{\textbf{Kontrollintervall \(k\)}} \\
+        \cmidrule(lr){3-6}
+        \textbf{Webanwendung} &
+        \(\boldsymbol{H_{\mathrm{P}}}\) &
+        \textbf{0} &
+        \textbf{2} &
+        \textbf{5} &
+        \textbf{10} \\
+        \midrule
+        GitLab & 0  & 107,7 & 875,8  & 858,6  & 852,6 \\
+        GitLab & 2  & 831,6 & 1.091,9 & 960,9  & 990,2 \\
+        GitLab & 5  & 251,4 & 971,1  & 967,3  & 953,9 \\
+        GitLab & 10 & 117,1 & 826,5  & 887,6  & 866,1 \\
+        \addlinespace
+
+        Reddit & 0  & 87,9  & 408,5 & 458,7 & 501,3 \\
+        Reddit & 2  & 366,1 & 542,2 & 721,9 & 570,6 \\
+        Reddit & 5  & 151,6 & 512,6 & 573,3 & 581,9 \\
+        Reddit & 10 & 92,0  & 361,2 & 480,0 & 481,8 \\
+        \addlinespace
+
+        Shopping & 0  & 106,4 & 440,4 & 699,5 & 683,3 \\
+        Shopping & 2  & 759,8 & 725,2 & 728,3 & 814,4 \\
+        Shopping & 5  & 171,8 & 690,1 & 792,0 & 855,2 \\
+        Shopping & 10 & 116,1 & 623,0 & 692,9 & 768,9 \\
+        \addlinespace
+
+        Shopping Admin & 0  & 144,8 & 912,0   & 1.005,8 & 1.139,3 \\
+        Shopping Admin & 2  & 996,6 & 1.141,0 & 1.083,0 & 1.085,9 \\
+        Shopping Admin & 5  & 271,1 & 1.007,4 & 1.101,2 & 1.075,2 \\
+        Shopping Admin & 10 & 151,5 & 926,8   & 1.107,6 & 1.097,2 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Mittlerer Tokenverbrauch nach Webanwendung und
+    Versuchsbedingung, angegeben in Tausend Tokens pro Lauf}
+    \label{tab:site-tokenverbrauch-hk}
+\end{table}

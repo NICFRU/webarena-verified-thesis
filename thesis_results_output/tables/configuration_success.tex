@@ -1,0 +1,22 @@
+\begin{longtable}{llrrrrrrrrr}
+\caption{configuration success} \label{tab:configuration_success} \\
+\toprule
+configuration & Bedeutung & runs & tasks & treatments & success\_rate\_pct & median\_tokens & median\_runtime\_s & mean\_planner\_calls & mean\_executor\_calls & mean\_runtime\_replans \\
+\midrule
+\endfirsthead
+\caption[]{configuration success} \\
+\toprule
+configuration & Bedeutung & runs & tasks & treatments & success\_rate\_pct & median\_tokens & median\_runtime\_s & mean\_planner\_calls & mean\_executor\_calls & mean\_runtime\_replans \\
+\midrule
+\endhead
+\midrule
+\multicolumn{11}{r}{Continued on next page} \\
+\midrule
+\endfoot
+\bottomrule
+\endlastfoot
+H\_P=0, k=0 & Full-Horizon, keine planmaessige Pruefung & 210 & 210 & 1 & 4,286 & 107802,000 & 44,553 & 1,519 & 3,252 & 0,519 \\
+H\_P=0, k>0 & Full-Horizon mit planmaessiger Pruefung & 630 & 210 & 3 & 26,032 & 460546,500 & 161,493 & 6,519 & 17,459 & 5,576 \\
+H\_P>0, k=0 & begrenzter Planungshorizont ohne planmaessige Pruefung & 630 & 210 & 3 & 13,175 & 138400,500 & 56,786 & 5,270 & 8,665 & 1,484 \\
+H\_P>0, k>0 & begrenzter Planungshorizont mit planmaessiger Pruefung & 1890 & 210 & 9 & 27,196 & 600713,000 & 222,189 & 7,483 & 19,397 & 6,304 \\
+\end{longtable}
