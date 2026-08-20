@@ -9,11 +9,34 @@ WebArena-Verified agent implemented under `scripts/hk_agent/`.
 Benchmark repository:
 [ServiceNow/webarena-verified](https://github.com/ServiceNow/webarena-verified)
 
+Thesis PDF:
+[docs/thesis/thesis.pdf](docs/thesis/thesis.pdf)
+
 The thesis studies how the planning horizon `H_P` and the runtime control
 interval `k` affect task success, process behavior, token cost, and wall-clock
 time on WebArena-Verified Hard tasks. In the final experiment, 16 `H_P/k`
 treatments were evaluated on 210 single-site tasks. The best global task success
 rate in the reported results is reached at `H_P=5, k=5`.
+
+## Architecture
+
+The H/k agent separates planning, execution, runtime evaluation, and control.
+The Planner creates bounded high-level plans, the Executor maps the current
+subgoal to BrowserGym actions, and the Runtime Evaluator checks progress every
+`k` steps. The Controller then decides whether the agent continues, repairs the
+current plan, replans, or aborts.
+
+![H/k agent architecture](docs/architecture/hk_agent_gesamtarchitektur.png)
+
+Further architecture material:
+
+- `docs/architecture/hk_agent_gesamtarchitektur.png`
+- `docs/architecture/task44_complete_example_flow.drawio.pdf`
+- `docs/architecture/planner_prompt_composition.drawio.pdf`
+- `docs/architecture/runtime_hk_v3_precise_process_final.drawio.pdf`
+- `docs/architektur_und_umsetzung_hk_agent.md`
+- `docs/task_44_durchfuehrung_beispiel.md`
+- `docs/thesis/thesis.pdf`
 
 ## Abstract
 
@@ -82,20 +105,6 @@ Utility and resource overview: the analysis combines task success, token cost,
 and runtime into a relative trade-off view.
 
 ![Utility and resource overview](thesis_results_output/figures/section_04_global_hk_metric_bars.png)
-
-![H/k agent architecture](docs/architecture/hk_agent_gesamtarchitektur.png)
-
-PDF version: [hk_agent_gesamtarchitektur.pdf](hk_agent_gesamtarchitektur.pdf)
-
-Further architecture material:
-
-- `docs/architecture/hk_agent_gesamtarchitektur.png`
-- `docs/architecture/task44_complete_example_flow.drawio.pdf`
-- `docs/architecture/planner_prompt_composition.drawio.pdf`
-- `docs/architecture/runtime_hk_v3_precise_process_final.drawio.pdf`
-- `docs/architektur_und_umsetzung_hk_agent.md`
-- `docs/task_44_durchfuehrung_beispiel.md`
-- `docs/thesis/thesis.pdf`
 
 ## Repository Layout
 
