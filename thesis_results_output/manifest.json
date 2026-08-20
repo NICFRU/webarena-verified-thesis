@@ -7,8 +7,8 @@
   "tables_dir": "tables",
   "figures_dir": "figures",
   "artifact_counts": {
-    "tables": 91,
-    "figures": 89
+    "tables": 115,
+    "figures": 100
   },
-  "reproducibility_note": "Run notebooks/final_analysis.ipynb from top to bottom. Section 8 rewrites only derived tables and figures, never data/final_summary.csv or data/final_summary.json. It includes H_P/k group comparisons and k>0 axis analyses."
+  "reproducibility_note": "Run notebooks/final_analysis.ipynb from top to bottom. Section 8 rewrites derived figures by default. Table exports are disabled by default because thesis_results_output/tables also contains artifacts from other notebooks; see tables/README.md. It never writes data/final_summary.csv or data/final_summary.json and includes H_P/k group comparisons plus k>0 axis analyses."
 }

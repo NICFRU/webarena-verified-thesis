@@ -1,0 +1,12 @@
+failure_category,h2k2_count
+step_budget_exhausted,70
+llm_json_or_action_parse_failure,31
+missing_required_mutation,14
+loop_or_no_progress,8
+missing_retrieved_data,7
+schema_or_value_mismatch,6
+missing_action_not_allowed,5
+gitlab_mr_reply_ambiguous_assignment,3
+official_eval_mismatch,3
+planner_call_budget_exhausted,2
+gitlab_invite_multi_user_incomplete,2

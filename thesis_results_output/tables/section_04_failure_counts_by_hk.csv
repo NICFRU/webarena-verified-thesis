@@ -1,0 +1,17 @@
+hk,bad_route_or_not_found,gitlab_invite_multi_user_incomplete,gitlab_mr_reply_ambiguous_assignment,llm_json_or_action_parse_failure,loop_or_no_progress,missing_action_not_allowed,missing_required_mutation,missing_retrieved_data,official_eval_mismatch,planner_call_budget_exhausted,schema_or_value_mismatch,official_success,step_budget_exhausted
+h0/k0,0,0,3,12,4,6,0,4,164,0,5,9,3
+h0/k2,0,3,3,25,7,4,10,9,12,8,6,50,73
+h0/k5,1,3,3,29,3,4,9,5,5,8,8,61,71
+h0/k10,1,1,3,32,1,5,12,6,5,8,8,53,75
+h2/k0,1,1,3,27,1,4,13,9,31,3,10,44,63
+h2/k2,0,2,3,31,8,5,14,7,3,2,6,59,70
+h2/k5,3,0,3,26,2,3,11,7,5,1,5,60,84
+h2/k10,1,0,3,27,0,3,13,4,6,0,4,58,91
+h5/k0,0,3,3,18,2,6,4,10,111,0,10,20,23
+h5/k2,0,3,3,26,6,4,12,6,7,7,10,56,70
+h5/k5,1,3,3,30,3,5,7,5,5,2,4,66,76
+h5/k10,0,1,3,32,0,6,18,5,6,1,7,51,80
+h10/k0,0,0,3,16,4,6,1,3,149,0,5,19,4
+h10/k2,0,4,3,26,11,6,13,9,7,4,7,50,70
+h10/k5,0,3,3,29,3,3,15,5,5,8,9,53,74
+h10/k10,0,2,2,31,0,3,13,7,7,1,3,61,80
