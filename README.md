@@ -12,6 +12,9 @@ Benchmark repository:
 Thesis PDF:
 [docs/thesis/thesis.pdf](docs/thesis/thesis.pdf)
 
+SLR documentation:
+[docs/thesis/Dokumentation der Systematic Literature Review.xlsx](<docs/thesis/Dokumentation der Systematic Literature Review.xlsx>)
+
 The thesis studies how the planning horizon `H_P` and the runtime control
 interval `k` affect task success, process behavior, token cost, and wall-clock
 time on WebArena-Verified Hard tasks. In the final experiment, 16 `H_P/k`
@@ -37,6 +40,7 @@ Further architecture material:
 - `docs/architektur_und_umsetzung_hk_agent.md`
 - `docs/task_44_durchfuehrung_beispiel.md`
 - `docs/thesis/thesis.pdf`
+- `docs/thesis/Dokumentation der Systematic Literature Review.xlsx`
 
 ## Abstract
 
@@ -113,6 +117,7 @@ and runtime into a relative trade-off view.
 ├── docs/
 │   ├── architecture/                 # architecture figures for thesis/presentation
 │   ├── thesis/thesis.pdf             # thesis PDF copy
+│   ├── thesis/Dokumentation der Systematic Literature Review.xlsx
 │   ├── architektur_und_umsetzung_hk_agent.md
 │   └── task_44_durchfuehrung_beispiel.md
 ├── external/
